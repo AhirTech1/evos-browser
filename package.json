@@ -1,0 +1,61 @@
+{
+  "name": "evos-browser",
+  "version": "1.0.0",
+  "description": "EVOS Browser - An AI-powered Chromium-based browser",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "pack": "electron-builder --dir"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AhirTech1/evos-browser.git"
+  },
+  "keywords": [
+    "browser",
+    "electron",
+    "chromium",
+    "ai",
+    "agent"
+  ],
+  "author": "AhirTech1",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^39.2.7",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "electron-store": "^8.1.0",
+    "node-llama-cpp": "^3.0.0",
+    "uuid": "^9.0.1"
+  },
+  "build": {
+    "appId": "com.evos.browser",
+    "productName": "EVOS Browser",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icons/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icons/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icons"
+    }
+  }
+}

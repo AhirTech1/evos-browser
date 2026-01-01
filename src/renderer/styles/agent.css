@@ -1,0 +1,403 @@
+/* EVOS Agent UI Styles */
+/* Floating status bar, notifications, and agent interactions */
+
+/* ==========================================
+   Agent Status Bar (Floating Bottom-Right)
+   ========================================== */
+.agent-status-bar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    min-width: 280px;
+    max-width: 400px;
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.95), rgba(20, 20, 30, 0.98));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 16px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    backdrop-filter: blur(20px);
+    z-index: 10000;
+    transform: translateY(120%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.agent-status-bar.visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.agent-status-bar.success {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.agent-status-bar.error {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.agent-icon {
+    font-size: 24px;
+    animation: agent-pulse 2s ease-in-out infinite;
+}
+
+@keyframes agent-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.agent-status-bar.success .agent-icon {
+    animation: none;
+}
+
+.agent-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.agent-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.agent-message {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.agent-progress {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.agent-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.agent-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.agent-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.agent-btn.primary {
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    color: white;
+}
+
+.agent-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+}
+
+.agent-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.agent-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.agent-close {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.agent-close:hover {
+    background: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+/* ==========================================
+   Toast Notifications
+   ========================================== */
+.toast-container {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10001;
+    pointer-events: none;
+}
+
+.toast {
+    min-width: 300px;
+    max-width: 420px;
+    background: rgba(30, 30, 40, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: auto;
+}
+
+.toast.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast.success {
+    border-left: 3px solid #22c55e;
+}
+
+.toast.error {
+    border-left: 3px solid #ef4444;
+}
+
+.toast.info {
+    border-left: 3px solid #3b82f6;
+}
+
+.toast.warning {
+    border-left: 3px solid #f59e0b;
+}
+
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.toast-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.toast-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.toast-message {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
+}
+
+.toast-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.toast-close {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* ==========================================
+   Agent Modal (For Decisions)
+   ========================================== */
+.agent-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.agent-modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.agent-modal {
+    width: 90%;
+    max-width: 480px;
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.98), rgba(20, 20, 30, 0.99));
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+    transform: scale(0.9) translateY(20px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.agent-modal-overlay.visible .agent-modal {
+    transform: scale(1) translateY(0);
+}
+
+.agent-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.agent-modal-icon {
+    font-size: 32px;
+}
+
+.agent-modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.agent-modal-body {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.agent-modal-preview {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.agent-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+/* ==========================================
+   Agent Recording Indicator
+   ========================================== */
+.recording-indicator {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.95));
+    border-radius: 24px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3);
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recording-indicator.visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+.recording-dot {
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    animation: recording-blink 1s ease-in-out infinite;
+}
+
+@keyframes recording-blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.recording-text {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.recording-stop {
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.recording-stop:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

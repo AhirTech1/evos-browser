@@ -1,0 +1,35 @@
+# EVOS Browser AI Agent - Python Dependencies
+
+# FastAPI for HTTP server (IPC with Electron)
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# LLM Integration
+ollama==0.1.6
+httpx>=0.25.2,<0.26.0
+
+# For browser automation
+playwright==1.41.0
+
+# Vector database for memory
+chromadb==0.4.22
+
+# Embeddings (lightweight, runs locally)
+sentence-transformers==2.2.2
+
+# Utilities
+pydantic==2.5.3
+python-dotenv==1.0.0
+aiofiles==23.2.1
+
+# For structured data
+sqlalchemy==2.0.25
+aiosqlite==0.19.0
+
+# Screenshot and image processing
+
+# Screenshot and image processing
+pillow==10.2.0
+
+# Online AI (Gemini)
+google-generativeai==0.3.2

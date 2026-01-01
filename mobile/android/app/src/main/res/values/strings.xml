@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EvosBrowser</string>
+    <string name="title_activity_main">EvosBrowser</string>
+    <string name="package_name">com.evos.browser</string>
+    <string name="custom_url_scheme">com.evos.browser</string>
+</resources>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>EVOS Browser</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-brand">
+                <span class="brand-icon">🌐</span>
+                <span class="brand-text">EVOS</span>
+            </div>
+            <button class="header-btn" id="btn-settings">⚙️</button>
+        </header>
+
+        <!-- URL Bar -->
+        <div class="url-bar-container">
+            <input type="url" id="url-input" class="url-input" placeholder="Search or enter URL">
+            <button class="url-go-btn" id="btn-go">→</button>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Browser View (hidden by default) -->
+            <div class="browser-view" id="browser-view" style="display: none;">
+                <iframe id="browser-frame" src="about:blank"></iframe>
+                <button class="browser-close" id="btn-close-browser">✕</button>
+            </div>
+
+            <!-- AI Chat View (default) -->
+            <div class="ai-view" id="ai-view">
+                <!-- Welcome -->
+                <div class="welcome-section" id="welcome-section">
+                    <div class="welcome-icon">🤖</div>
+                    <h1>EVOS AI</h1>
+                    <p>Your intelligent mobile companion</p>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <button class="action-card" data-action="search">
+                            <span class="action-icon">🔍</span>
+                            <span class="action-label">Search Web</span>
+                        </button>
+                        <button class="action-card" data-action="research">
+                            <span class="action-icon">🔬</span>
+                            <span class="action-label">Research</span>
+                        </button>
+                        <button class="action-card" data-action="summarize">
+                            <span class="action-icon">📝</span>
+                            <span class="action-label">Summarize</span>
+                        </button>
+                        <button class="action-card" data-action="chat">
+                            <span class="action-icon">💬</span>
+                            <span class="action-label">Just Chat</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chat-messages"></div>
+
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typing-indicator" style="display: none;">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Chat Input -->
+        <div class="chat-input-container">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask EVOS anything...">
+            <button class="send-btn" id="btn-send">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-tab="ai">
+                <span class="nav-icon">🤖</span>
+                <span class="nav-label">AI</span>
+            </button>
+            <button class="nav-item" data-tab="browse">
+                <span class="nav-icon">🌐</span>
+                <span class="nav-label">Browse</span>
+            </button>
+            <button class="nav-item" data-tab="history">
+                <span class="nav-icon">📜</span>
+                <span class="nav-label">History</span>
+            </button>
+            <button class="nav-item" data-tab="profile">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">Profile</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

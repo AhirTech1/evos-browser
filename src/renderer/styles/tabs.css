@@ -1,0 +1,210 @@
+/* Tab Bar Styles */
+
+/* Remove old #tabbar styles as it's gone */
+
+#tabs-container {
+  display: flex;
+  align-items: flex-end;
+  /* height: 100%;  Let it take parent height? Or fixed? */
+  height: 34px;
+  /* Slightly shorter than titlebar to have some gap or match? */
+  margin-bottom: 0px;
+  /* Align to bottom */
+  overflow-x: hidden;
+  /* Hide scrollbar, let tabs shrink */
+  overflow-y: hidden;
+  flex: 1;
+  /* Take up available space */
+  -webkit-app-region: drag;
+  /* Allow dragging in empty space */
+  gap: 0;
+  z-index: 1;
+  /* Above branding */
+  margin-left: 8px;
+  /* Spacing from left edge */
+  padding-right: 8px;
+  /* Spacing before drag region/controls */
+  /* Scrollbar handling: Chrome style shrinks tabs, but if too many, maybe scroll? 
+     For now, flex-shrink handles it until min-width is hit. */
+}
+
+#tabs-container::-webkit-scrollbar {
+  display: none;
+  /* Hide scrollbar Chrome */
+}
+
+/* Chrome-like Tab Sizing & Purple Glass Aesthetic */
+.tab {
+  display: flex;
+  align-items: center;
+  /* Chrome behavior: flex 1 1 auto. Grow to fill, shrink to fit. */
+  flex: 1 1 auto;
+  min-width: 72px;
+  /* Allow shrinking */
+  max-width: 240px;
+  height: 100%;
+  padding: 0 10px;
+
+  /* Glassy Purple Blue Combo - Translucent */
+  /* Reduced opacity to let EVOS branding show through clearly (User req: 70-80% visible) */
+  background: linear-gradient(180deg, rgba(88, 28, 135, 0.15) 0%, rgba(30, 58, 138, 0.25) 100%);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  margin-right: -4px;
+  /* Slight overlap for fluid look */
+
+  cursor: pointer;
+  transition: background var(--transition-fast), min-width 0.2s, flex-basis 0.2s;
+  position: relative;
+
+  /* Critical: Mask/Clip allows text to remain readable but background transparent */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  /* Lighter text for dark glass */
+
+  /* Critical: Tabs must be clickable, not draggable (except for sorting, handled by JS usually) 
+     Actually, if we want dragging TABS themselves (reorder), we need 'no-drag' from window perspective 
+     so JS drag events fire. 
+  */
+  -webkit-app-region: no-drag;
+}
+
+.tab:hover {
+  background: linear-gradient(180deg, rgba(109, 40, 217, 0.35) 0%, rgba(37, 99, 235, 0.45) 100%);
+  z-index: 2;
+  /* Bring hovered tab to front */
+}
+
+.tab.active {
+  /* Active tab: Distinct but maintaining the theme - slightly more solid/lighter */
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.45) 0%, rgba(37, 99, 235, 0.55) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-bottom: none;
+
+  opacity: 1;
+  z-index: 3;
+  /* On top of everything */
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #a78bfa;
+  /* Light purple accent line */
+  box-shadow: 0 0 8px #a78bfa;
+}
+
+.tab-favicon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.tab-favicon.loading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.tab-title {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 4px;
+}
+
+.tab-close {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.tab:hover .tab-close,
+.tab.active .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.tab-close svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Audio indicator */
+.tab-audio {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.tab.playing-audio .tab-audio {
+  display: flex;
+}
+
+/* New tab button */
+.new-tab-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  margin-left: 4px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.new-tab-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Tab dragging styles */
+.tab.dragging {
+  opacity: 0.5;
+}
+
+.tab.drag-over {
+  border-left: 2px solid var(--accent-color);
+}
