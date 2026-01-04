@@ -13,6 +13,7 @@ build/
 mobile/
 
 # Environment variables
+.env
 .env.local
 .env.*.local
 
