@@ -1402,9 +1402,18 @@ ipcMain.handle('ai-delete-memory', async (event, id) => {
 // Clear all memories
 ipcMain.handle('ai-clear-memory', async () => {
   try {
+    // Clear standard memories
     await aiMemory.clearAll();
-    return { success: true };
+
+    // Also clear knowledge graph
+    if (knowledgeGraph && knowledgeGraph.clear) {
+      knowledgeGraph.clear();
+      console.log('[Main] Knowledge graph cleared');
+    }
+
+    return { success: true, message: 'All memories and knowledge cleared' };
   } catch (error) {
+    console.error('[Main] Clear memory error:', error);
     return { success: false, error: error.message };
   }
 });
@@ -1489,4 +1498,89 @@ ipcMain.handle('ai-switch-mode', async (event, mode) => {
   }
 
   return { success: false, error: 'Invalid mode' };
+});
+
+// Web Search for Deep Research (bypasses CORS in renderer)
+ipcMain.handle('ai-web-search', async (event, query) => {
+  console.log('[WebSearch] Searching for:', query);
+
+  // Try SearXNG instances
+  const searxInstances = [
+    'https://searx.be',
+    'https://search.sapti.me',
+    'https://searx.tiekoetter.com',
+    'https://search.aqribez.com'
+  ];
+
+  for (const instance of searxInstances) {
+    try {
+      const url = `${instance}/search?q=${encodeURIComponent(query)}&format=json&categories=general`;
+      console.log(`[WebSearch] Trying ${instance}...`);
+
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'EVOS-Browser/1.0'
+        },
+        timeout: 10000
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.results && data.results.length > 0) {
+          const results = data.results.slice(0, 10).map(r => ({
+            title: r.title || 'Untitled',
+            url: r.url,
+            snippet: r.content || ''
+          })).filter(r => r.url && !r.url.includes('youtube.com'));
+
+          console.log(`[WebSearch] Got ${results.length} results from ${instance}`);
+          return { success: true, results };
+        }
+      }
+    } catch (e) {
+      console.log(`[WebSearch] ${instance} failed:`, e.message);
+    }
+  }
+
+  // Fallback: DuckDuckGo Instant Answer API
+  try {
+    console.log('[WebSearch] Trying DuckDuckGo...');
+    const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`;
+    const response = await fetch(ddgUrl);
+
+    if (response.ok) {
+      const data = await response.json();
+      const results = [];
+
+      if (data.AbstractURL) {
+        results.push({
+          title: data.Heading || query,
+          url: data.AbstractURL,
+          snippet: data.AbstractText || ''
+        });
+      }
+
+      if (data.RelatedTopics) {
+        for (const topic of data.RelatedTopics.slice(0, 8)) {
+          if (topic.FirstURL) {
+            results.push({
+              title: topic.Text?.split(' - ')[0] || 'Related',
+              url: topic.FirstURL,
+              snippet: topic.Text || ''
+            });
+          }
+        }
+      }
+
+      if (results.length > 0) {
+        console.log(`[WebSearch] Got ${results.length} results from DuckDuckGo`);
+        return { success: true, results };
+      }
+    }
+  } catch (e) {
+    console.log('[WebSearch] DuckDuckGo failed:', e.message);
+  }
+
+  return { success: false, results: [], error: 'All search engines failed' };
 });

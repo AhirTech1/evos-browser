@@ -138,5 +138,8 @@ contextBridge.exposeInMainWorld('aiAPI', {
   onAgentProgress: (callback) => ipcRenderer.on('ai-agent-progress', (event, data) => callback(data)),
 
   // Remove listeners
-  removeListener: (channel) => ipcRenderer.removeAllListeners(channel)
+  removeListener: (channel) => ipcRenderer.removeAllListeners(channel),
+
+  // Web search for research
+  webSearch: (query) => ipcRenderer.invoke('ai-web-search', query)
 });

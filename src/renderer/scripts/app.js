@@ -30,6 +30,7 @@ class EVOSBrowser {
 
     // Initialize controllers
     this.tabManager = new TabManager();
+    window.tabs = this.tabManager; // Expose for other components like research panel
     this.navigationController = new NavigationController(this.tabManager);
     this.panelController = new PanelController(this.tabManager);
     this.menuController = new MenuController(

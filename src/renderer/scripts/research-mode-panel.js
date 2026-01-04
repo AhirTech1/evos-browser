@@ -31,7 +31,7 @@ class ResearchModePanel {
         this.elements = {
             queryInput: this.overlay.querySelector('.research-query-input'),
             startBtn: this.overlay.querySelector('.research-start-btn'),
-            closeBtn: this.overlay.querySelector('.research-close-btn'),
+            closeBtn: this.overlay.querySelector('.research-modal-close'),
             stopBtn: this.overlay.querySelector('.research-stop-btn'),
             progressFeed: this.overlay.querySelector('.progress-feed'),
             progressIndicator: this.overlay.querySelector('.progress-indicator'),
@@ -47,6 +47,13 @@ class ResearchModePanel {
 
     getTemplate() {
         return `
+            <!-- Modal Close Button -->
+            <button class="research-modal-close" title="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+
             <div class="research-panels">
                 <!-- Left Panel - Query & Controls -->
                 <div class="research-panel-left">
@@ -97,7 +104,10 @@ Examples:
                             <span>⏹️</span>
                             <span>Stop Research</span>
                         </button>
-                        <button class="research-close-btn">Close</button>
+                        <button class="research-load-btn">
+                            <span>📚</span>
+                            <span>Load History</span>
+                        </button>
                     </div>
                 </div>
 
@@ -174,6 +184,12 @@ Examples:
         this.elements.copyBtn?.addEventListener('click', () => this.copyResults());
         this.elements.saveBtn?.addEventListener('click', () => this.saveResults());
 
+        // Load history button
+        const loadBtn = this.overlay.querySelector('.research-load-btn');
+        if (loadBtn) {
+            loadBtn.addEventListener('click', () => this.loadSavedResearch());
+        }
+
         this.overlay.querySelector('[data-action="new"]')?.addEventListener('click', () => {
             this.resetPanel();
         });
@@ -195,6 +211,14 @@ Examples:
 
     open() {
         console.log('[ResearchModePanel] open() called');
+
+        // Close AI panel if open to prevent overlap
+        const aiPanel = document.querySelector('.ai-chat-panel');
+        if (aiPanel && aiPanel.classList.contains('open')) {
+            aiPanel.classList.remove('open');
+            console.log('[ResearchModePanel] AI panel closed');
+        }
+
         this.isOpen = true;
         this.overlay.classList.add('active');
         this.resetPanel();
@@ -311,10 +335,11 @@ Examples:
         }
 
         const depth = this.elements.depthSelect.value;
-        const depthLabel = depth === 'quick' ? 'Quick' : depth === 'deep' ? 'Deep' : 'Standard';
+        const sourceCount = depth === 'quick' ? 3 : depth === 'deep' ? 8 : 5;
 
         this.isResearching = true;
         this.sources = [];
+        this.openedTabs = [];
         this.elements.startBtn.style.display = 'none';
         this.elements.stopBtn.style.display = '';
         this.elements.progressIndicator.classList.add('active');
@@ -325,35 +350,66 @@ Examples:
             // Phase 1: Understanding the query
             this.addProgressStep('🧠', 'Understanding Query', `Analyzing: "${query}"`);
             this.elements.progressStatus.textContent = 'Analyzing query...';
-            await this.delay(800);
-
-            if (!this.isResearching) return;
-
-            // Phase 2: Planning research
-            this.addProgressStep('📋', 'Planning Research', `${depthLabel} analysis mode activated...`);
-            this.elements.progressStatus.textContent = 'Planning approach...';
-            await this.delay(600);
-
-            if (!this.isResearching) return;
-
-            // Phase 3: Generating research
-            this.addProgressStep('🔬', 'Conducting Research', 'AI is researching topic from multiple perspectives...');
-            this.elements.progressStatus.textContent = 'Researching...';
-
-            // Generate the research report using AI directly
-            const report = await this.conductAIResearch(query, depth);
-
-            if (!this.isResearching) return;
-
-            // Phase 4: Organizing findings
-            this.addProgressStep('📚', 'Organizing Findings', 'Structuring insights and recommendations...');
-            this.elements.progressStatus.textContent = 'Organizing...';
             await this.delay(500);
 
             if (!this.isResearching) return;
 
+            // Phase 2: Searching the web for REAL articles
+            this.addProgressStep('🔍', 'Searching the Web', 'Finding relevant articles and papers...');
+            this.elements.progressStatus.textContent = 'Searching...';
+
+            // Actually scrape Google for real URLs
+            const searchResults = await this.scrapeGoogleResults(query);
+            console.log('[DeepResearch] Found URLs:', searchResults);
+
+            if (!this.isResearching) return;
+
+            if (searchResults.length === 0) {
+                this.addProgressStep('⚠️', 'Limited Results', 'Falling back to AI analysis...');
+            } else {
+                // Phase 3: Open the ACTUAL article pages
+                this.addProgressStep('📂', 'Opening Sources', `Found ${searchResults.length} articles - opening in tabs...`);
+                this.elements.progressStatus.textContent = 'Opening articles...';
+
+                const urlsToOpen = searchResults.slice(0, sourceCount);
+
+                for (let i = 0; i < urlsToOpen.length; i++) {
+                    const result = urlsToOpen[i];
+
+                    // Add to sources list
+                    this.sources.push({
+                        title: result.title,
+                        url: result.url,
+                        domain: this.getDomain(result.url),
+                        snippet: result.snippet
+                    });
+
+                    // Show in progress
+                    this.addSourceToProgress(result.title, result.url, result.snippet);
+
+                    // Actually open this specific article in a new tab
+                    if (window.tabs && typeof window.tabs.createTab === 'function') {
+                        setTimeout(() => {
+                            window.tabs.createTab(result.url);
+                            console.log(`[DeepResearch] Opened: ${result.title}`);
+                        }, i * 800);
+                    }
+
+                    await this.delay(300);
+                    if (!this.isResearching) return;
+                }
+            }
+
+            // Phase 4: Generate AI synthesis
+            this.addProgressStep('🔬', 'Analyzing Content', 'AI is synthesizing findings from sources...');
+            this.elements.progressStatus.textContent = 'Synthesizing...';
+
+            const report = await this.generateResearchSynthesis(query, this.sources);
+
+            if (!this.isResearching) return;
+
             // Phase 5: Complete
-            this.addProgressStep('✅', 'Research Complete', 'Comprehensive report ready!', 'complete');
+            this.addProgressStep('✅', 'Research Complete', `Analyzed ${this.sources.length} sources!`, 'complete');
             this.elements.progressStatus.textContent = 'Complete!';
             this.elements.progressIndicator.classList.remove('active');
 
@@ -381,6 +437,41 @@ Examples:
             this.elements.startBtn.style.display = '';
             this.elements.stopBtn.style.display = 'none';
             this.elements.progressIndicator.classList.remove('active');
+        }
+    }
+
+    async generateResearchSynthesis(topic, sources) {
+        const sourceSummary = sources.map((s, i) =>
+            `[${i + 1}] ${s.title}\n    URL: ${s.url}\n    Preview: ${s.snippet?.substring(0, 200) || 'No preview'}`
+        ).join('\n\n');
+
+        const prompt = `You are a research analyst. Create a comprehensive research report on: "${topic}"
+
+I found these ${sources.length} relevant sources:
+${sourceSummary}
+
+Create a detailed report with:
+
+## Executive Summary
+(2-3 sentence overview of key findings)
+
+## Key Findings
+(5-8 bullet points with specific insights from the sources)
+
+## Detailed Analysis
+(In-depth exploration with specific information from the sources. Reference sources as [1], [2], etc.)
+
+## Conclusions & Recommendations
+(Actionable takeaways based on research)
+
+Be specific and reference the source numbers. Provide real insights, not generic information.`;
+
+        try {
+            const result = await window.aiAPI.chat(prompt, {});
+            return result.response || 'Report generation failed';
+        } catch (e) {
+            console.error('[DeepResearch] Synthesis failed:', e);
+            return 'Failed to synthesize research. The sources have been opened in tabs for manual review.';
         }
     }
 
@@ -438,23 +529,134 @@ IMPORTANT: Be thorough, specific, and provide real value. Avoid generic statemen
         }
     }
 
-    addSyntheticSources(topic) {
-        const domains = [
-            { name: 'Wikipedia', domain: 'wikipedia.org' },
-            { name: 'Research Database', domain: 'scholar.google.com' },
-            { name: 'Industry Analysis', domain: 'statista.com' },
-            { name: 'News Coverage', domain: 'bbc.com' },
-            { name: 'Expert Insights', domain: 'medium.com' }
-        ];
+    // Topic-specific research sources organized by domain
+    getSpecializedSources() {
+        return {
+            healthcare: [
+                { name: 'PubMed', baseUrl: 'https://pubmed.ncbi.nlm.nih.gov/?term=', icon: '🔬' },
+                { name: 'NIH', baseUrl: 'https://www.nih.gov/search/results?q=', icon: '🏥' },
+                { name: 'WHO', baseUrl: 'https://www.who.int/home/search-results?query=', icon: '🌍' },
+                { name: 'WebMD', baseUrl: 'https://www.webmd.com/search/search_results/default.aspx?query=', icon: '💊' }
+            ],
+            technology: [
+                { name: 'arXiv Papers', baseUrl: 'https://arxiv.org/search/?query=', icon: '📄' },
+                { name: 'IEEE Xplore', baseUrl: 'https://ieeexplore.ieee.org/search/searchresult.jsp?queryText=', icon: '⚡' },
+                { name: 'ACM Digital Library', baseUrl: 'https://dl.acm.org/action/doSearch?AllField=', icon: '💻' },
+                { name: 'TechCrunch', baseUrl: 'https://techcrunch.com/search/', icon: '📱' }
+            ],
+            programming: [
+                { name: 'Stack Overflow', baseUrl: 'https://stackoverflow.com/search?q=', icon: '💡' },
+                { name: 'GitHub', baseUrl: 'https://github.com/search?q=', icon: '🐙' },
+                { name: 'Dev.to', baseUrl: 'https://dev.to/search?q=', icon: '👨‍💻' },
+                { name: 'MDN Docs', baseUrl: 'https://developer.mozilla.org/en-US/search?q=', icon: '📚' }
+            ],
+            science: [
+                { name: 'Nature', baseUrl: 'https://www.nature.com/search?q=', icon: '🔬' },
+                { name: 'Science Direct', baseUrl: 'https://www.sciencedirect.com/search?qs=', icon: '🧪' },
+                { name: 'ResearchGate', baseUrl: 'https://www.researchgate.net/search/publication?q=', icon: '🎓' },
+                { name: 'Google Scholar', baseUrl: 'https://scholar.google.com/scholar?q=', icon: '📖' }
+            ],
+            business: [
+                { name: 'Harvard Business Review', baseUrl: 'https://hbr.org/search?term=', icon: '📈' },
+                { name: 'Forbes', baseUrl: 'https://www.forbes.com/search/?q=', icon: '💼' },
+                { name: 'Bloomberg', baseUrl: 'https://www.bloomberg.com/search?query=', icon: '📊' },
+                { name: 'Investopedia', baseUrl: 'https://www.investopedia.com/search?q=', icon: '💰' }
+            ],
+            legal: [
+                { name: 'LexisNexis', baseUrl: 'https://www.lexisnexis.com/search?q=', icon: '⚖️' },
+                { name: 'FindLaw', baseUrl: 'https://www.findlaw.com/search.html?query=', icon: '📜' },
+                { name: 'Justia', baseUrl: 'https://www.justia.com/search?q=', icon: '🏛️' },
+                { name: 'Cornell Law', baseUrl: 'https://www.law.cornell.edu/search/site/', icon: '📋' }
+            ],
+            education: [
+                { name: 'JSTOR', baseUrl: 'https://www.jstor.org/action/doBasicSearch?Query=', icon: '📚' },
+                { name: 'ERIC', baseUrl: 'https://eric.ed.gov/?q=', icon: '🎓' },
+                { name: 'Khan Academy', baseUrl: 'https://www.khanacademy.org/search?referer=&page_search_query=', icon: '📖' },
+                { name: 'Coursera', baseUrl: 'https://www.coursera.org/search?query=', icon: '🎯' }
+            ],
+            general: [
+                { name: 'Google Scholar', baseUrl: 'https://scholar.google.com/scholar?q=', icon: '🎓' },
+                { name: 'Wikipedia', baseUrl: 'https://en.wikipedia.org/w/index.php?search=', icon: '📖' },
+                { name: 'Britannica', baseUrl: 'https://www.britannica.com/search?query=', icon: '📚' },
+                { name: 'Google Search', baseUrl: 'https://www.google.com/search?q=', icon: '🔍' }
+            ]
+        };
+    }
 
-        domains.forEach((d) => {
+    // Detect topic category using AI
+    async detectTopicCategory(topic) {
+        try {
+            const prompt = `Categorize this research topic into ONE of these categories.Reply with ONLY the category name, nothing else:
+        Categories: healthcare, technology, programming, science, business, legal, education, general
+
+    Topic: "${topic}"
+
+    Category: `;
+
+            const result = await window.aiAPI.chat(prompt, {});
+            if (result.response) {
+                const category = result.response.toLowerCase().trim();
+                const validCategories = ['healthcare', 'technology', 'programming', 'science', 'business', 'legal', 'education', 'general'];
+                if (validCategories.includes(category)) {
+                    console.log(`[ResearchMode] Detected category: ${category} `);
+                    return category;
+                }
+            }
+        } catch (e) {
+            console.error('[ResearchMode] Category detection failed:', e);
+        }
+        return 'general';
+    }
+
+    async addSyntheticSources(topic) {
+        // First, detect the topic category using AI
+        this.addProgressStep('🔍', 'Analyzing Topic', 'Detecting research domain...');
+        const category = await this.detectTopicCategory(topic);
+
+        const allSources = this.getSpecializedSources();
+        const categorySources = allSources[category] || allSources.general;
+
+        this.addProgressStep('📚', `${category.charAt(0).toUpperCase() + category.slice(1)} Sources`,
+            `Opening specialized ${category} research sources...`);
+
+        // Open tabs for the specialized sources
+        categorySources.forEach((source, index) => {
+            const searchUrl = `${source.baseUrl}${encodeURIComponent(topic)} `;
+
             this.sources.push({
-                title: `${d.name}: ${topic}`,
-                url: `https://${d.domain}/search?q=${encodeURIComponent(topic)}`,
-                domain: d.domain,
-                snippet: `Research information about ${topic}`
+                title: `${source.icon} ${source.name}: ${topic} `,
+                url: searchUrl,
+                domain: new URL(source.baseUrl).hostname,
+                snippet: `${category} research from ${source.name} `
             });
+
+            // Open each specialized source in a new tab
+            if (window.tabs && typeof window.tabs.createTab === 'function') {
+                const delay = (index + 1) * 1200; // 1.2s between tabs
+                setTimeout(() => {
+                    window.tabs.createTab(searchUrl);
+                    console.log(`[ResearchMode] Opened ${source.name} for ${category} research`);
+                }, delay);
+            }
         });
+
+        // Add Google Scholar as a universal backup
+        if (category !== 'general' && category !== 'science') {
+            const scholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(topic)}`;
+            this.sources.push({
+                title: `📖 Google Scholar: ${topic}`,
+                url: scholarUrl,
+                domain: 'scholar.google.com',
+                snippet: 'Academic papers and citations'
+            });
+
+            setTimeout(() => {
+                if (window.tabs) {
+                    window.tabs.createTab(scholarUrl);
+                    console.log('[ResearchMode] Opened Google Scholar for academic papers');
+                }
+            }, (categorySources.length + 1) * 1200);
+        }
     }
 
     async generateSearchQueries(topic, count) {
@@ -516,62 +718,22 @@ Topic: ${topic}`;
     }
 
     async scrapeGoogleResults(query) {
-        // Create a temporary hidden webview to search
-        const webview = document.createElement('webview');
-        webview.style.cssText = 'position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;';
-        webview.setAttribute('partition', 'persist:research');
-        document.body.appendChild(webview);
+        // Use IPC to search from main process (bypasses CORS)
+        try {
+            console.log('[DeepResearch] Calling IPC web search...');
+            const response = await window.aiAPI.webSearch(query);
 
-        return new Promise((resolve) => {
-            const timeout = setTimeout(() => {
-                webview.remove();
-                resolve([]);
-            }, 10000);
-
-            webview.addEventListener('did-finish-load', async () => {
-                try {
-                    const results = await webview.executeJavaScript(`
-                        (function() {
-                            const results = [];
-                            const items = document.querySelectorAll('.g');
-                            items.forEach(item => {
-                                const linkEl = item.querySelector('a[href^="http"]');
-                                const titleEl = item.querySelector('h3');
-                                const snippetEl = item.querySelector('.VwiC3b, [data-sncf="1"]');
-                                
-                                if (linkEl && titleEl) {
-                                    const url = linkEl.href;
-                                    if (!url.includes('google.com') && !url.includes('youtube.com')) {
-                                        results.push({
-                                            title: titleEl.innerText,
-                                            url: url,
-                                            snippet: snippetEl ? snippetEl.innerText : ''
-                                        });
-                                    }
-                                }
-                            });
-                            return results.slice(0, 8);
-                        })()
-                    `);
-
-                    clearTimeout(timeout);
-                    webview.remove();
-                    resolve(results);
-                } catch (e) {
-                    clearTimeout(timeout);
-                    webview.remove();
-                    resolve([]);
-                }
-            });
-
-            webview.addEventListener('did-fail-load', () => {
-                clearTimeout(timeout);
-                webview.remove();
-                resolve([]);
-            });
-
-            webview.src = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-        });
+            if (response && response.success && response.results) {
+                console.log(`[DeepResearch] Got ${response.results.length} results via IPC`);
+                return response.results;
+            } else {
+                console.log('[DeepResearch] IPC search failed:', response?.error);
+                return [];
+            }
+        } catch (e) {
+            console.error('[DeepResearch] IPC search error:', e);
+            return [];
+        }
     }
 
     async extractContentFromSources(sources) {
@@ -808,9 +970,9 @@ Be informative, accurate, and cite source numbers [1], [2], etc. when referencin
         }
     }
 
-    saveResults() {
+    async saveResults() {
         if (this.currentResearch) {
-            // Save to localStorage for now
+            // Save to localStorage
             const saved = JSON.parse(localStorage.getItem('evos-research-history') || '[]');
             saved.unshift({
                 id: Date.now(),
@@ -818,9 +980,26 @@ Be informative, accurate, and cite source numbers [1], [2], etc. when referencin
             });
             localStorage.setItem('evos-research-history', JSON.stringify(saved.slice(0, 20)));
 
-            window.agentManager?.showToast('Saved!', 'Research saved to history', {
+            // Also save to main process memory system
+            if (window.aiAPI && window.aiAPI.saveMemory) {
+                await window.aiAPI.saveMemory({
+                    id: `research-${Date.now()}`,
+                    type: 'research',
+                    title: `Research: ${this.currentResearch.query}`,
+                    content: this.currentResearch.report,
+                    url: null,
+                    timestamp: this.currentResearch.timestamp,
+                    metadata: {
+                        depth: this.currentResearch.depth,
+                        sourcesCount: this.currentResearch.sources.length,
+                        sources: this.currentResearch.sources
+                    }
+                });
+            }
+
+            window.agentManager?.showToast('Saved!', 'Research saved to Memory tab', {
                 type: 'success',
-                duration: 2000
+                duration: 3000
             });
         }
     }
@@ -842,9 +1021,82 @@ Be informative, accurate, and cite source numbers [1], [2], etc. when referencin
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+
+    // Load saved research from history
+    loadSavedResearch() {
+        const history = JSON.parse(localStorage.getItem('evos-research-history') || '[]');
+
+        if (history.length === 0) {
+            window.agentManager?.showToast('No Saved Research', 'Start a research first', {
+                type: 'info',
+                duration: 3000
+            });
+            return;
+        }
+
+        const listHtml = history.map((r, i) => `
+            <div class="saved-research-item" data-index="${i}" style="
+                padding: 12px 16px;
+                background: rgba(139, 92, 246, 0.1);
+                border: 1px solid rgba(139, 92, 246, 0.2);
+                border-radius: 10px;
+                margin-bottom: 10px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            ">
+                <div style="font-weight: 600; font-size: 14px; color: #fff; margin-bottom: 4px;">
+                    ${r.query || 'Research'}
+                </div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.5);">
+                    ${new Date(r.timestamp).toLocaleString()} • ${r.sources?.length || 0} sources
+                </div>
+            </div>
+        `).join('');
+
+        window.agentManager?.showModal('Load Saved Research', `
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${listHtml || '<p style="color: rgba(255,255,255,0.5)">No saved research found</p>'}
+            </div>
+        `, [
+            { id: 'close', label: 'Close', primary: true }
+        ], { icon: '📚' });
+
+        // Add click handlers after modal is shown
+        setTimeout(() => {
+            document.querySelectorAll('.saved-research-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const index = parseInt(item.dataset.index);
+                    const research = history[index];
+                    if (research) {
+                        this.currentResearch = research;
+                        this.displayResults(research);
+                        // Close modal
+                        document.querySelector('.modal-close')?.click();
+                        // Open research panel if not open
+                        if (!this.isOpen) {
+                            this.open();
+                        }
+                        window.agentManager?.showToast('Research Loaded', 'Viewing saved research', {
+                            type: 'success',
+                            duration: 2000
+                        });
+                    }
+                });
+                item.addEventListener('mouseenter', () => {
+                    item.style.background = 'rgba(139, 92, 246, 0.2)';
+                    item.style.borderColor = 'rgba(139, 92, 246, 0.4)';
+                });
+                item.addEventListener('mouseleave', () => {
+                    item.style.background = 'rgba(139, 92, 246, 0.1)';
+                    item.style.borderColor = 'rgba(139, 92, 246, 0.2)';
+                });
+            });
+        }, 100);
+    }
 }
 
 // Initialize
 console.log('[ResearchModePanel] Initializing...');
 window.researchModePanel = new ResearchModePanel();
 console.log('[ResearchModePanel] Ready:', !!window.researchModePanel);
+

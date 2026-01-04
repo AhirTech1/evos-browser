@@ -6,19 +6,59 @@
 /* Research Mode Overlay */
 .research-mode-overlay {
   position: fixed;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  width: 90%;
+  max-width: 1400px;
+  height: 85vh;
+  max-height: 900px;
   background: rgba(10, 10, 20, 0.98);
   backdrop-filter: blur(20px);
-  z-index: 10000;
+  z-index: 9999;
   display: flex;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(139, 92, 246, 0.2);
+  overflow: hidden;
 }
 
 .research-mode-overlay.active {
   opacity: 1;
   visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Modal Close Button - Top Right X */
+.research-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.research-modal-close:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.research-modal-close svg {
+  width: 18px;
+  height: 18px;
 }
 
 /* Galaxy Background Effect */
@@ -262,6 +302,9 @@
 .research-actions {
   margin-top: auto;
   padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .research-start-btn {
@@ -293,23 +336,50 @@
   transform: none;
 }
 
-.research-close-btn {
+.research-stop-btn {
   width: 100%;
-  padding: 12px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 13px;
+  padding: 14px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 10px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
 }
 
-.research-close-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
+.research-stop-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.4);
+}
+
+.research-load-btn {
+  width: 100%;
+  padding: 14px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.research-load-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-1px);
 }
 
 /* Center Panel - Live Progress */
