@@ -528,7 +528,7 @@ class AIPanel {
     // Map 'connected' to 'online' for CSS consistency
     const statusClass = type === 'connected' ? 'online' : type;
     this.statusIndicator.className = `ai-panel-status ${statusClass}`;
-    
+
     const statusText = document.getElementById('ai-status-text');
     if (statusText) {
       statusText.textContent = text;
@@ -538,7 +538,7 @@ class AIPanel {
     if (this.sendButton && this.inputField) {
       this.sendButton.disabled = !this.inputField.value.trim();
     }
-    
+
     // Mark as ready if connected
     if (type === 'connected' || type === 'online') {
       this.isReady = true;
@@ -902,12 +902,37 @@ Refined Search Query (combine query with relevant preferences, location, or rela
         try {
           await think('✨ Generating summary...', 600);
           const pageContext = await this.getPageContentAsync();
-          const result = await window.aiAPI.chat('Provide a concise, well-structured summary of this page. Use bullet points for key points.', pageContext);
+
+          // Check if we got valid content
+          if (!pageContext.content || pageContext.content.trim().length < 50) {
+            this.hideTyping();
+            this.addMessage('error', 'Could not extract enough content from this page. Please make sure the page is fully loaded.');
+            break;
+          }
+
+          // Include the page content directly in the prompt for better summarization
+          const summaryPrompt = `Please summarize the following web page content. Provide a concise, well-structured summary with bullet points for key points.
+
+Title: ${pageContext.title || 'Untitled'}
+URL: ${pageContext.url || 'Unknown'}
+
+Page Content:
+${pageContext.content.substring(0, 4000)}
+
+Please provide a clear summary of the main points from this content:`;
+
+          const result = await window.aiAPI.chat(summaryPrompt, pageContext);
           this.hideTyping();
-          this.addMessage('assistant', result.response);
+
+          if (result.response) {
+            this.addMessage('assistant', result.response);
+          } else {
+            this.addMessage('error', 'Failed to generate summary. Please try again.');
+          }
         } catch (e) {
+          console.error('[AIPanel] Summary error:', e);
           this.hideTyping();
-          this.addMessage('error', 'Failed to summarize page');
+          this.addMessage('error', 'Failed to summarize page: ' + (e.message || 'Unknown error'));
         }
         break;
 
@@ -1082,15 +1107,35 @@ Refined Search Query (combine query with relevant preferences, location, or rela
         this.addMessage('user', 'Summarize this page');
         this.showTyping('Analyzing page...');
         try {
-          const result = await window.aiAPI.chat(
-            `Please summarize the following web page content:\n\nTitle: ${pageContext.title}\nURL: ${pageContext.url}\n\nContent:\n${pageContext.content?.substring(0, 3000) || 'No content available'}`,
-            pageContext
-          );
+          // Validate we have enough content
+          if (!pageContext.content || pageContext.content.trim().length < 50) {
+            this.hideTyping();
+            this.addMessage('error', 'Could not extract enough content from this page. Please make sure the page is fully loaded.');
+            break;
+          }
+
+          const summaryPrompt = `Please summarize the following web page content. Provide a concise, well-structured summary with bullet points for key points.
+
+Title: ${pageContext.title || 'Untitled'}
+URL: ${pageContext.url || 'Unknown'}
+
+Page Content:
+${pageContext.content.substring(0, 4000)}
+
+Please provide a clear summary of the main points from this content:`;
+
+          const result = await window.aiAPI.chat(summaryPrompt, pageContext);
           this.hideTyping();
-          this.addMessage('assistant', result.response);
+
+          if (result.response) {
+            this.addMessage('assistant', result.response);
+          } else {
+            this.addMessage('error', 'Failed to generate summary. Please try again.');
+          }
         } catch (error) {
+          console.error('[AIPanel] Summary error:', error);
           this.hideTyping();
-          this.addMessage('error', error.message);
+          this.addMessage('error', 'Failed to summarize: ' + (error.message || 'Unknown error'));
         }
         break;
 
@@ -1205,7 +1250,7 @@ Refined Search Query (combine query with relevant preferences, location, or rela
         }
         break;
     }
-  
+
     this.isProcessingQuickAction = false;
   }
 
@@ -1276,7 +1321,7 @@ Refined Search Query (combine query with relevant preferences, location, or rela
     try {
       // Get knowledge context from the backend
       const result = await window.aiAPI.getKnowledgeContext();
-      
+
       if (!result || !result.context || result.context.trim() === '' || result.context === 'Known information about the user:\n') {
         knowledgeList.innerHTML = `
           <div class="ai-knowledge-empty">
@@ -1300,7 +1345,7 @@ Refined Search Query (combine query with relevant preferences, location, or rela
       // Parse and display knowledge
       const lines = result.context.split('\n').filter(l => l.trim());
       let html = '<div class="ai-knowledge-items">';
-      
+
       let currentSection = '';
       for (const line of lines) {
         if (line.includes(':') && !line.startsWith('-')) {
@@ -1316,9 +1361,9 @@ Refined Search Query (combine query with relevant preferences, location, or rela
           </div>`;
         }
       }
-      
+
       html += '</div>';
-      
+
       // Add stats
       if (result.stats) {
         html += `<div class="ai-knowledge-stats">
