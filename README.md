@@ -1,7 +1,7 @@
 # EVOS Browser
 
 <p align="center">
-  <img src="assets/icons/logo.svg" alt="EVOS Browser Logo" width="128" height="128">
+  <img src="assets/icons/Logo.svg" alt="EVOS Browser Logo" width="128" height="128">
 </p>
 
 <p align="center">
