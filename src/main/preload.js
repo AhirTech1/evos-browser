@@ -61,6 +61,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, info) => callback(info)),
   onDownloadComplete: (callback) => ipcRenderer.on('download-complete', (event, info) => callback(info)),
 
+  // AI Action events (AI opens URLs, navigates, etc.)
+  onAIOpenUrl: (callback) => ipcRenderer.on('ai-open-url', (event, data) => callback(data)),
+
   // Remove listeners
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)
 });
@@ -98,6 +101,9 @@ contextBridge.exposeInMainWorld('aiAPI', {
 
   // Chat history
   clearHistory: () => ipcRenderer.invoke('ai-clear-history'),
+
+  // Knowledge Graph
+  getKnowledgeContext: () => ipcRenderer.invoke('ai-get-knowledge-context'),
 
   // Legacy local storage (fallback)
   getMemories: () => ipcRenderer.invoke('ai-get-memories'),

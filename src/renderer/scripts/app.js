@@ -8,7 +8,7 @@ class EVOSBrowser {
     this.menuController = null;
     this.aiPanel = null;
     this.settings = null;
-    
+
     this.init();
   }
 
@@ -24,7 +24,7 @@ class EVOSBrowser {
   async setup() {
     // Load settings
     await this.loadSettings();
-    
+
     // Apply theme
     this.applyTheme();
 
@@ -33,8 +33,8 @@ class EVOSBrowser {
     this.navigationController = new NavigationController(this.tabManager);
     this.panelController = new PanelController(this.tabManager);
     this.menuController = new MenuController(
-      this.tabManager, 
-      this.navigationController, 
+      this.tabManager,
+      this.navigationController,
       this.panelController
     );
 
@@ -43,7 +43,7 @@ class EVOSBrowser {
 
     // Setup window controls
     this.setupWindowControls();
-    
+
     // Setup settings listener
     this.setupSettingsListener();
 
@@ -58,23 +58,41 @@ class EVOSBrowser {
 
   async initializeAI() {
     try {
-      // Initialize AI Panel (Python backend)
-      this.aiPanel = new AIPanel();
-      
+      // Use existing AIPanel instance from window.aiPanel (created by ai-panel.js)
+      // Don't create a new one to avoid duplicates
+      this.aiPanel = window.aiPanel;
+
       // Setup AI button
       const aiBtn = document.getElementById('btn-ai');
       if (aiBtn) {
         aiBtn.addEventListener('click', () => {
-          this.aiPanel.toggle();
+          // Use window.aiPanel to ensure we're using the singleton
+          if (window.aiPanel) {
+            window.aiPanel.toggle();
+          }
         });
       }
 
-      // Listen for AI navigation events
+      // Listen for AI navigation events (internal)
       window.addEventListener('ai-navigate', (e) => {
         this.navigationController.navigateTo(e.detail);
       });
 
-      console.log('[EVOSBrowser] AI Panel initialized');
+      // Listen for AI-initiated URL opens from main process
+      window.electronAPI.onAIOpenUrl((data) => {
+        console.log('[AI] Opening URL:', data);
+        if (data.url) {
+          if (data.newTab) {
+            // Open in new tab
+            this.tabManager.createTab(data.url);
+          } else {
+            // Navigate current tab
+            this.navigationController.navigateTo(data.url);
+          }
+        }
+      });
+
+      console.log('[EVOSBrowser] AI Panel initialized with action support');
     } catch (error) {
       console.error('[EVOSBrowser] Failed to initialize AI Panel:', error);
     }
@@ -83,7 +101,7 @@ class EVOSBrowser {
   setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
       // Ctrl+Shift+A - Toggle AI Panel
-      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a' || e.code === 'KeyA')) {
         e.preventDefault();
         if (this.aiPanel) {
           this.aiPanel.toggle();
@@ -107,7 +125,7 @@ class EVOSBrowser {
 
   applyTheme() {
     const themeMode = this.settings?.themeMode || 'dark';
-    
+
     if (themeMode === 'system') {
       // Check system preference
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -192,7 +210,7 @@ class EVOSBrowser {
   setupWebviewEventForwarding() {
     // Forward find-in-page results from webviews
     const webviewsContainer = document.getElementById('webviews-container');
-    
+
     if (webviewsContainer) {
       // Use MutationObserver to watch for new webviews
       const observer = new MutationObserver((mutations) => {

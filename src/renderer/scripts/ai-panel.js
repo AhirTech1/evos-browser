@@ -9,10 +9,8 @@ class AIPanel {
     this.isProcessingQuickAction = false;
     this.needsDownload = false;
     this.modelInfo = null;
-    this.modelInfo = null;
     this.messages = [];
-    this.mode = 'offline'; // 'offline' or 'online'
-
+    this.mode = 'online'; // 'offline' or 'online' - default to online
 
     this.panel = null;
     this.chatContainer = null;
@@ -290,25 +288,48 @@ class AIPanel {
           <!-- Memory Tab -->
           <div class="ai-tab-panel" id="memory-panel">
             <div class="ai-memory-header">
-              <h3>Saved Memories</h3>
-              <p>Pages you've asked AI to remember</p>
+              <h3>🧠 AI Memory</h3>
+              <p>What EVOS AI knows about you</p>
             </div>
-            <div class="ai-memory-search">
-              <input type="text" id="memory-search-input" placeholder="Search memories..." />
-              <button id="memory-search-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="M21 21l-4.35-4.35"/>
-                </svg>
-              </button>
+            
+            <!-- Memory Sub-tabs -->
+            <div class="ai-memory-tabs">
+              <button class="ai-memory-tab active" data-memtab="knowledge">👤 About You</button>
+              <button class="ai-memory-tab" data-memtab="pages">📄 Saved Pages</button>
             </div>
-            <div class="ai-memory-list" id="ai-memory-list">
-              <div class="ai-memory-empty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
-                </svg>
-                <p>No memories yet</p>
-                <span>Click "Remember" on any page to save it</span>
+            
+            <!-- Knowledge Panel (What AI knows about user) -->
+            <div class="ai-memory-subtab active" id="knowledge-subtab">
+              <div class="ai-knowledge-section">
+                <div class="ai-knowledge-header">
+                  <span>Things I remember about you:</span>
+                  <button class="ai-clear-knowledge-btn" id="ai-clear-knowledge-btn" title="Clear all memories">🗑️ Clear</button>
+                </div>
+                <div class="ai-knowledge-list" id="ai-knowledge-list">
+                  <div class="ai-knowledge-loading">Loading your profile...</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Pages Panel (Saved pages) -->
+            <div class="ai-memory-subtab" id="pages-subtab">
+              <div class="ai-memory-search">
+                <input type="text" id="memory-search-input" placeholder="Search saved pages..." />
+                <button id="memory-search-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="ai-memory-list" id="ai-memory-list">
+                <div class="ai-memory-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                  </svg>
+                  <p>No saved pages yet</p>
+                  <span>Click "Remember" on any page to save it</span>
+                </div>
               </div>
             </div>
           </div>
@@ -415,6 +436,14 @@ class AIPanel {
       if (e.key === 'Enter') this.searchMemory();
     });
 
+    // Memory sub-tabs
+    this.panel.querySelectorAll('.ai-memory-tab').forEach(tab => {
+      tab.addEventListener('click', (e) => this.switchMemoryTab(e.target.dataset.memtab));
+    });
+
+    // Clear knowledge button
+    this.panel.querySelector('#ai-clear-knowledge-btn')?.addEventListener('click', () => this.clearKnowledge());
+
     // New task button
     this.panel.querySelector('#ai-new-task-btn')?.addEventListener('click', () => this.createNewTask());
 
@@ -455,16 +484,35 @@ class AIPanel {
       const status = await window.aiAPI.getStatus();
       console.log('[AIPanel] Status:', status);
 
+      // Check for online mode first (Gemini)
+      const modeData = await window.aiAPI.getMode();
+      if (modeData.mode === 'online' && modeData.geminiAvailable) {
+        this.isReady = true;
+        this.mode = 'online';
+        this.updateToggleState();
+        this.updateStatus('connected', 'Online AI Ready');
+        return;
+      }
+
+      // Check offline status
       if (status.isReady) {
         this.isReady = true;
         this.updateStatus('connected', 'AI Ready');
         this.updateModelBadge(status.modelName || 'Qwen2.5-3B');
       } else if (!status.isModelDownloaded) {
-        this.needsDownload = true;
-        this.showSetupOverlay({
-          modelName: status.modelName || 'Qwen2.5-3B',
-          modelSize: status.modelSize || 1940000000
-        });
+        // For online mode, still allow usage even if offline model not downloaded
+        if (modeData.geminiAvailable) {
+          this.isReady = true;
+          this.mode = 'online';
+          this.updateToggleState();
+          this.updateStatus('connected', 'Online AI Ready');
+        } else {
+          this.needsDownload = true;
+          this.showSetupOverlay({
+            modelName: status.modelName || 'Qwen2.5-3B',
+            modelSize: status.modelSize || 1940000000
+          });
+        }
       } else {
         this.updateStatus('processing', 'Loading model...');
       }
@@ -480,11 +528,20 @@ class AIPanel {
     // Map 'connected' to 'online' for CSS consistency
     const statusClass = type === 'connected' ? 'online' : type;
     this.statusIndicator.className = `ai-panel-status ${statusClass}`;
-    document.getElementById('ai-status-text').textContent = text;
+    
+    const statusText = document.getElementById('ai-status-text');
+    if (statusText) {
+      statusText.textContent = text;
+    }
 
-    // Update send button state
-    if (this.sendButton) {
-      this.sendButton.disabled = !this.isReady || !this.inputField?.value.trim();
+    // Update send button state - don't require isReady, we check in sendMessage
+    if (this.sendButton && this.inputField) {
+      this.sendButton.disabled = !this.inputField.value.trim();
+    }
+    
+    // Mark as ready if connected
+    if (type === 'connected' || type === 'online') {
+      this.isReady = true;
     }
   }
 
@@ -573,13 +630,21 @@ class AIPanel {
       this.inputField.style.height = 'auto';
       this.inputField.style.height = Math.min(this.inputField.scrollHeight, 120) + 'px';
 
-      // Update send button state
-      this.sendButton.disabled = !this.isReady || !this.inputField.value.trim();
+      // Update send button state - enable if there's text (we check readiness in sendMessage)
+      if (this.sendButton) {
+        this.sendButton.disabled = !this.inputField.value.trim();
+      }
     }
   }
 
   async sendMessage() {
-    if (!this.isReady || !this.inputField?.value.trim()) return;
+    if (!this.inputField?.value.trim()) return;
+
+    // Check if API is available
+    if (!window.aiAPI) {
+      this.addMessage('error', 'AI API is not available. Please restart the browser.');
+      return;
+    }
 
     const message = this.inputField.value.trim();
     this.inputField.value = '';
@@ -601,11 +666,28 @@ class AIPanel {
         this.hideTyping();
         await this.executeAgentAction(intent, message);
       } else {
-        // Regular chat - get page context and respond
-        this.showTyping('Extracting page content...');
-        const pageContext = await this.getPageContentAsync();
-        this.showTyping('AI is thinking...');
+        // Regular chat - intelligently decide if we need page context
+        const lowerMessage = message.toLowerCase();
+        const pageKeywords = [
+          'this page', 'the page', 'current page', 'this article', 'this website',
+          'summarize', 'summary', 'what is this', 'what does this', 'explain this',
+          'the content', 'this content', 'on this page', 'here', 'above', 'below',
+          'the article', 'this post', 'this site', 'what am i looking at',
+          'extract', 'find on', 'search this', 'in this'
+        ];
+        const needsPageContext = pageKeywords.some(kw => lowerMessage.includes(kw));
 
+        let pageContext = null;
+        if (needsPageContext) {
+          this.showTyping('Reading page content...');
+          try {
+            pageContext = await this.getPageContentAsync();
+          } catch (e) {
+            console.warn('[AIPanel] Failed to get page context:', e);
+          }
+        }
+
+        this.showTyping('AI is thinking...');
         const result = await window.aiAPI.chat(message, pageContext);
         this.hideTyping();
 
@@ -616,8 +698,9 @@ class AIPanel {
         }
       }
     } catch (error) {
+      console.error('[AIPanel] Send message error:', error);
       this.hideTyping();
-      this.addMessage('error', `Error: ${error.message}`);
+      this.addMessage('error', `Error: ${error.message || 'Failed to process your request. Please try again.'}`);
     }
 
     this.sendButton.disabled = false;
@@ -690,14 +773,49 @@ Intent:`;
       await new Promise(r => setTimeout(r, delay));
     };
 
+    // Get user memory context if available
+    let userContext = '';
+    try {
+      userContext = await window.aiAPI.getKnowledgeContext();
+    } catch (e) {
+      console.log('Failed to get knowledge context', e);
+    }
+
     switch (intent.action) {
       case 'search':
         if (window.searchAgent) {
-          const query = originalMessage
+          let query = originalMessage
             .replace(/^(search for|find me|look up|search:|find:|look for|search about|find information on|google|search online)\s*/i, '')
             .trim();
 
           await think('🤔 Understanding what you need...', 600);
+
+          // Enrich query with memory if available
+          if (userContext && userContext.length > 5) {
+            await think('🧠 Consulting memory...', 500);
+            try {
+              // Ask AI to rewrite the query based on memory
+              const enrichmentPrompt = `
+You are a helpful assistant improving a search query based on user memory.
+Current Query: "${query}"
+User Memory:
+${userContext}
+
+Refined Search Query (combine query with relevant preferences, location, or relationships from memory. Keep it concise):`;
+
+              const refined = await window.aiAPI.generateText(enrichmentPrompt);
+              const cleanedRefined = refined.trim().replace(/^"|"$/g, '');
+
+              if (cleanedRefined && cleanedRefined.length > 3 && cleanedRefined.length < 100) {
+                console.log(`[AI] Enriched query: "${query}" -> "${cleanedRefined}"`);
+                query = cleanedRefined;
+                await think('✨ Personalizing search...', 400);
+              }
+            } catch (e) {
+              console.log('Query enrichment failed', e);
+            }
+          }
+
           await think('🔍 Analyzing your request...', 500);
           this.hideTyping();
 
@@ -913,13 +1031,14 @@ Intent:`;
     });
 
     // Load content for memory/tasks tabs
-    if (tabName === 'memory') this.loadMemories();
+    if (tabName === 'memory') this.loadKnowledge(); // Load knowledge by default
     if (tabName === 'tasks') this.loadTasks();
   }
 
   async handleQuickAction(action) {
-    if (!this.isReady) {
-      this.addMessage('error', 'AI is not ready. Please wait for the model to load.');
+    // Check if API is available
+    if (!window.aiAPI) {
+      this.addMessage('error', 'AI API is not available. Please restart the browser.');
       return;
     }
 
@@ -927,20 +1046,34 @@ Intent:`;
     if (this.isProcessingQuickAction) return;
     this.isProcessingQuickAction = true;
 
-    // For search action, we don't need page content
+    // Actions that don't need page content
     if (action === 'search') {
       this.inputField.focus();
       this.inputField.placeholder = 'What would you like me to search for?';
+      this.isProcessingQuickAction = false; // Reset flag
+      return;
+    }
+
+    // Record/Macros don't need page content either
+    if (action === 'record' || action === 'macros') {
+      await this.handleNoContextAction(action);
+      this.isProcessingQuickAction = false; // Reset flag
       return;
     }
 
     // Get page content asynchronously for all other actions
     this.showTyping('Extracting page content...');
-    const pageContext = await this.getPageContentAsync();
+    let pageContext = { title: '', url: '', content: '' };
+    try {
+      pageContext = await this.getPageContentAsync();
+    } catch (error) {
+      console.warn('[AIPanel] Failed to get page content:', error);
+    }
 
     if (!pageContext.content && !pageContext.title) {
       this.hideTyping();
       this.addMessage('error', 'Could not extract page content. Please make sure a webpage is loaded.');
+      this.isProcessingQuickAction = false; // Reset flag
       return;
     }
 
@@ -1023,31 +1156,6 @@ Intent:`;
         }
         break;
 
-      case 'record':
-        this.hideTyping();
-        if (window.macroAgent) {
-          if (window.macroAgent.isRecording) {
-            this.addMessage('user', 'Stop recording');
-            window.macroAgent.stopRecording();
-          } else {
-            this.addMessage('user', 'Start recording my actions');
-            window.macroAgent.startRecording();
-          }
-        } else {
-          this.addMessage('error', 'Macro agent not available');
-        }
-        break;
-
-      case 'macros':
-        this.hideTyping();
-        this.addMessage('user', 'Show my saved macros');
-        if (window.macroAgent) {
-          window.macroAgent.showMacrosList();
-        } else {
-          this.addMessage('error', 'Macro agent not available');
-        }
-        break;
-
       case 'agentic-search':
         this.hideTyping();
         if (window.searchAgent) {
@@ -1062,8 +1170,8 @@ Intent:`;
             <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
               <label style="color: rgba(255,255,255,0.5); font-size: 12px;">Pages to open:</label>
               <select id="search-num-results" style="padding: 6px 10px; border-radius: 6px; 
-                      background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); 
-                      color: #fff; font-size: 13px;">
+                                  background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); 
+                                  color: #fff; font-size: 13px;">
                 <option value="auto">Auto (AI decides)</option>
                 <option value="1">1</option>
                 <option value="2">2</option>
@@ -1075,15 +1183,16 @@ Intent:`;
           `, [
             {
               id: 'search',
-              label: '🔎 Search',
+              label: 'Search',
               primary: true,
               onClick: () => {
                 const query = document.getElementById('search-query-input')?.value;
-                const numSelect = document.getElementById('search-num-results')?.value;
-                const numResults = numSelect === 'auto' ? null : parseInt(numSelect);
-                if (query?.trim()) {
+                const numResults = document.getElementById('search-num-results')?.value;
+
+                if (query) {
+                  window.agentManager.hideModal();
                   this.addMessage('user', `Search for: ${query}`);
-                  window.searchAgent.search(query, numResults);
+                  this.executeAgentAction({ action: 'search' }, query);
                 }
               }
             },
@@ -1096,9 +1205,28 @@ Intent:`;
         }
         break;
     }
-
-    // Reset flag
+  
     this.isProcessingQuickAction = false;
+  }
+
+  // Handle actions that don't need page context (Search, Macros)
+  async handleNoContextAction(action) {
+    if (action === 'record') {
+      if (window.macroAgent) {
+        // Toggle recording logic
+        if (window.macroAgent.isRecording) {
+          this.addMessage('user', 'Stop recording');
+          window.macroAgent.stopRecording();
+        } else {
+          this.addMessage('user', 'Start recording my actions');
+          window.macroAgent.startRecording();
+        }
+      }
+    } else if (action === 'macros') {
+      if (window.macroAgent) {
+        window.macroAgent.showMacrosList();
+      }
+    }
   }
 
   handleAgentProgress(data) {
@@ -1112,6 +1240,135 @@ Intent:`;
       case 'observation':
         // Could show intermediate results
         break;
+    }
+  }
+
+  // Switch between memory sub-tabs (About You / Saved Pages)
+  switchMemoryTab(tabName) {
+    if (!this.panel) return;
+
+    // Update tab buttons
+    this.panel.querySelectorAll('.ai-memory-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.memtab === tabName);
+    });
+
+    // Update tab panels
+    this.panel.querySelectorAll('.ai-memory-subtab').forEach(panel => {
+      panel.classList.remove('active');
+    });
+
+    if (tabName === 'knowledge') {
+      this.panel.querySelector('#knowledge-subtab')?.classList.add('active');
+      this.loadKnowledge();
+    } else if (tabName === 'pages') {
+      this.panel.querySelector('#pages-subtab')?.classList.add('active');
+      this.loadMemories();
+    }
+  }
+
+  // Load what AI knows about the user
+  async loadKnowledge() {
+    if (!window.aiAPI || !this.panel) return;
+
+    const knowledgeList = this.panel.querySelector('#ai-knowledge-list');
+    if (!knowledgeList) return;
+
+    try {
+      // Get knowledge context from the backend
+      const result = await window.aiAPI.getKnowledgeContext();
+      
+      if (!result || !result.context || result.context.trim() === '' || result.context === 'Known information about the user:\n') {
+        knowledgeList.innerHTML = `
+          <div class="ai-knowledge-empty">
+            <div class="ai-knowledge-icon">🤔</div>
+            <p>I don't know much about you yet!</p>
+            <span>Chat with me and I'll learn your preferences, interests, and more.</span>
+            <div class="ai-knowledge-tips">
+              <strong>Try telling me:</strong>
+              <ul>
+                <li>"I live in Mumbai"</li>
+                <li>"I like Italian food"</li>
+                <li>"My name is [your name]"</li>
+                <li>"I work at [company]"</li>
+              </ul>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Parse and display knowledge
+      const lines = result.context.split('\n').filter(l => l.trim());
+      let html = '<div class="ai-knowledge-items">';
+      
+      let currentSection = '';
+      for (const line of lines) {
+        if (line.includes(':') && !line.startsWith('-')) {
+          // Section header
+          currentSection = line.replace(':', '').trim();
+          html += `<div class="ai-knowledge-section-title">${this.getKnowledgeIcon(currentSection)} ${currentSection}</div>`;
+        } else if (line.startsWith('-')) {
+          // Knowledge item
+          const content = line.substring(1).trim();
+          html += `<div class="ai-knowledge-item">
+            <span class="ai-knowledge-bullet">•</span>
+            <span class="ai-knowledge-text">${this.escapeHtml(content)}</span>
+          </div>`;
+        }
+      }
+      
+      html += '</div>';
+      
+      // Add stats
+      if (result.stats) {
+        html += `<div class="ai-knowledge-stats">
+          <span>📊 ${result.stats.entityCount || 0} things learned</span>
+          <span>🔗 ${result.stats.relationshipCount || 0} connections</span>
+        </div>`;
+      }
+
+      knowledgeList.innerHTML = html;
+    } catch (error) {
+      console.error('[AIPanel] Failed to load knowledge:', error);
+      knowledgeList.innerHTML = `
+        <div class="ai-knowledge-empty">
+          <p>Couldn't load memories</p>
+          <span>${error.message}</span>
+        </div>
+      `;
+    }
+  }
+
+  getKnowledgeIcon(section) {
+    const icons = {
+      'Known information about the user': '👤',
+      'Recent interests': '🔍',
+      'Preferences': '❤️',
+      'Facts': '📝',
+      'default': '📌'
+    };
+    return icons[section] || icons['default'];
+  }
+
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Clear all AI knowledge about user
+  async clearKnowledge() {
+    if (!confirm('Are you sure you want to clear everything the AI knows about you? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await window.aiAPI.clearMemory();
+      this.loadKnowledge();
+      this.addMessage('assistant', "I've cleared my memory. I won't remember our previous conversations or what I learned about you. Feel free to start fresh! 😊");
+    } catch (error) {
+      console.error('[AIPanel] Failed to clear knowledge:', error);
+      this.addMessage('error', 'Failed to clear memory: ' + error.message);
     }
   }
 
@@ -1307,19 +1564,19 @@ Intent:`;
     try {
       // Execute script in webview to extract content
       const result = await webview.executeJavaScript(`
-        (function() {
+        (function () {
           // Get main content, avoiding scripts and styles
           const body = document.body.cloneNode(true);
-          
+
           // Remove script, style, noscript tags
           body.querySelectorAll('script, style, noscript, iframe, svg').forEach(el => el.remove());
-          
+
           // Get text content
           let text = body.innerText || body.textContent || '';
-          
+
           // Clean up whitespace
           text = text.replace(/\\s+/g, ' ').trim();
-          
+
           return {
             title: document.title,
             url: window.location.href,

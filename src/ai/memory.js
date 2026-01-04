@@ -212,15 +212,20 @@ class AIMemory {
 
   // Remember a user interaction
   async rememberInteraction(action, result) {
-    const content = `
-      User action: ${action}
-      Result: ${result}
-    `.trim();
+    try {
+      const content = `
+        User action: ${action}
+        Result: ${result}
+      `.trim();
 
-    return await this.addMemory(content, {
-      type: 'interaction',
-      action: action
-    });
+      return await this.addMemory(content, {
+        type: 'interaction',
+        action: action
+      });
+    } catch (error) {
+      console.error('[Memory] Failed to remember interaction:', error);
+      return null;
+    }
   }
 
   // Remember a fact or piece of information

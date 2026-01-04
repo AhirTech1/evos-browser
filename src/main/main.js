@@ -5,7 +5,7 @@ const Store = require('electron-store');
 const { v4: uuidv4 } = require('uuid');
 
 // AI System imports - wrapped in try-catch to prevent app crash
-let llmEngine, aiAgent, aiMemory, modelDownloader, browserTools;
+let llmEngine, aiAgent, aiMemory, modelDownloader, browserTools, knowledgeGraph;
 let aiModulesLoaded = false;
 
 try {
@@ -15,6 +15,7 @@ try {
   aiMemory = aiModules.aiMemory;
   modelDownloader = aiModules.modelDownloader;
   browserTools = aiModules.browserTools;
+  knowledgeGraph = aiModules.knowledgeGraph;
   aiModulesLoaded = true;
   console.log('[Main] AI modules loaded successfully');
 } catch (error) {
@@ -25,6 +26,7 @@ try {
   aiMemory = { initialize: async () => { }, search: async () => [], getRecent: async () => [], rememberPage: async () => { }, getStats: () => ({}), deleteMemory: async () => false, clearAll: async () => { } };
   modelDownloader = { isModelReady: () => false, getStatus: () => ({ isReady: false }), downloadModel: async () => { }, onProgress: () => () => { }, getModelPath: () => '' };
   browserTools = { setBrowserContext: () => { } };
+  knowledgeGraph = { extractFromText: async () => { }, getContextForAI: () => '', queryForContext: () => ({ entities: [], relationships: [] }) };
 }
 
 // Initialize store for persistent data
@@ -74,8 +76,10 @@ async function initializeGemini() {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    geminiModel = genAI.getGenerativeModel({ model: 'gemini-3-flash' });
-    console.log('[Gemini] Initialized successfully');
+    // Use gemini-2.0-flash-001 (latest stable flash model)
+    // Alternative: gemini-1.5-flash-latest, gemini-2.0-flash-exp
+    geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    console.log('[Gemini] Initialized with gemini-2.0-flash');
     return true;
   } catch (error) {
     console.error('[Gemini] Initialization failed:', error.message);
@@ -89,9 +93,15 @@ async function chatWithGemini(message) {
     throw new Error('Gemini not initialized. Check API key.');
   }
 
-  const result = await geminiModel.generateContent(message);
-  const response = await result.response;
-  return response.text();
+  try {
+    const result = await geminiModel.generateContent(message);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error('[Gemini] Chat error:', error);
+    // Rethrow with cleaner message
+    throw new Error(`Gemini API error: ${error.message || 'Unknown error'}`);
+  }
 }
 
 // Search engine URLs
@@ -941,45 +951,358 @@ ipcMain.handle('ai-initialize', async () => {
   return await initializeAI();
 });
 
-// Chat with AI (simple response)
+// Conversation history for better context
+let conversationHistory = [];
+const MAX_HISTORY = 20;
+
+// Add to conversation history
+function addToConversationHistory(role, content) {
+  conversationHistory.push({
+    role,
+    content,
+    timestamp: Date.now()
+  });
+  // Keep only recent messages
+  if (conversationHistory.length > MAX_HISTORY) {
+    conversationHistory = conversationHistory.slice(-MAX_HISTORY);
+  }
+}
+
+// Get conversation context string
+function getConversationContext() {
+  if (conversationHistory.length === 0) return '';
+  
+  const recentHistory = conversationHistory.slice(-10);
+  return recentHistory.map(msg => 
+    `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
+  ).join('\n');
+}
+
+// Execute browser action
+async function executeBrowserAction(action, params, webContentsId) {
+  console.log(`[AI Action] Executing: ${action}`, params);
+  
+  try {
+    // Get webContents for browser interaction
+    let webContents = null;
+    if (webContentsId) {
+      webContents = require('electron').webContents.fromId(webContentsId);
+    }
+    
+    switch (action) {
+      case 'search':
+      case 'search_web':
+        const searchQuery = params.query || params.text || params;
+        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+        // Tell renderer to open new tab with search
+        mainWindow.webContents.send('ai-open-url', { url: searchUrl, newTab: true });
+        return { success: true, action: 'search', query: searchQuery, url: searchUrl };
+        
+      case 'navigate':
+      case 'open':
+      case 'go_to':
+        let url = params.url || params;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          url = 'https://' + url;
+        }
+        mainWindow.webContents.send('ai-open-url', { url, newTab: params.newTab !== false });
+        return { success: true, action: 'navigate', url };
+        
+      case 'open_zomato':
+        const zomatoUrl = `https://www.zomato.com/${params.city || 'surat'}/restaurants`;
+        mainWindow.webContents.send('ai-open-url', { url: zomatoUrl, newTab: true });
+        return { success: true, action: 'open_zomato', url: zomatoUrl };
+        
+      case 'open_google_maps':
+        const mapsQuery = params.query || params;
+        const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(mapsQuery)}`;
+        mainWindow.webContents.send('ai-open-url', { url: mapsUrl, newTab: true });
+        return { success: true, action: 'open_google_maps', url: mapsUrl };
+        
+      case 'click':
+        if (webContents) {
+          await webContents.executeJavaScript(`
+            (function() {
+              const el = document.querySelector('${params.selector}');
+              if (el) { el.click(); return true; }
+              return false;
+            })()
+          `);
+        }
+        return { success: true, action: 'click' };
+        
+      case 'type':
+        if (webContents) {
+          await webContents.executeJavaScript(`
+            (function() {
+              const el = document.querySelector('${params.selector}');
+              if (el) { 
+                el.value = '${params.text}';
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                return true;
+              }
+              return false;
+            })()
+          `);
+        }
+        return { success: true, action: 'type' };
+        
+      case 'scroll':
+        if (webContents) {
+          await webContents.executeJavaScript(`window.scrollBy(0, ${params.amount || 500})`);
+        }
+        return { success: true, action: 'scroll' };
+        
+      default:
+        return { success: false, error: `Unknown action: ${action}` };
+    }
+  } catch (error) {
+    console.error(`[AI Action] Error executing ${action}:`, error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Parse AI response for actions
+function parseAIResponseForActions(response) {
+  const actions = [];
+  
+  // Look for JSON action blocks
+  const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[1]);
+      if (parsed.action) actions.push(parsed);
+      if (Array.isArray(parsed.actions)) actions.push(...parsed.actions);
+    } catch (e) { /* ignore parse errors */ }
+  }
+  
+  // Look for ACTION: format
+  const actionMatches = response.matchAll(/ACTION:\s*(\w+)\s*(?:\(([^)]*)\))?/gi);
+  for (const match of actionMatches) {
+    actions.push({
+      action: match[1].toLowerCase(),
+      params: match[2] || ''
+    });
+  }
+  
+  return actions;
+}
+
+// Chat with AI (FULLY AGENTIC - executes actions automatically)
 ipcMain.handle('ai-chat', async (event, { message, context }) => {
   // Check current mode
   const currentMode = aiStore.get('settings.aiMode', 'online');
 
-  // Build enhanced message with context
+  // --- KNOWLEDGE GRAPH INTEGRATION ---
+  try {
+    await knowledgeGraph.extractFromText(message, { source: 'user_chat' });
+  } catch (e) { /* ignore */ }
+
+  // Get memory context
+  let memoryContext = '';
+  try {
+    memoryContext = knowledgeGraph.getContextForAI();
+  } catch (e) { /* ignore */ }
+
+  // Also search aiMemory
+  let searchMemoryContext = '';
+  try {
+    const memoryResults = await aiMemory.search(message, 3);
+    if (memoryResults && memoryResults.length > 0) {
+      searchMemoryContext = memoryResults.map(m => m.content).join('\n');
+    }
+  } catch (e) { /* ignore */ }
+
+  const lowerMessage = message.toLowerCase();
+  
+  // Detect action intent
+  const actionPatterns = {
+    search: /(?:search|find|look for|look up|google|search for)\s+(.+?)(?:\s+(?:on|in|for me))?$/i,
+    restaurant: /(?:restaurant|places? to eat|dinner|lunch|breakfast|food|cafe|dining).*?(?:in|at|near|around)?\s*(\w+)?/i,
+    navigate: /(?:go to|open|navigate to|visit|take me to)\s+(.+)/i,
+    maps: /(?:map|directions|how to get to|route to|navigate to)\s+(.+)/i,
+    shopping: /(?:buy|shop|purchase|order|price of)\s+(.+)/i,
+    weather: /(?:weather|temperature|forecast).*?(?:in|at|for)?\s*(\w+)?/i,
+    news: /(?:news|headlines|latest).*?(?:about|on|for)?\s*(.+)?/i,
+  };
+
+  let detectedAction = null;
+  let actionParams = {};
+
+  // Check for action patterns
+  for (const [actionType, pattern] of Object.entries(actionPatterns)) {
+    const match = lowerMessage.match(pattern);
+    if (match) {
+      detectedAction = actionType;
+      actionParams = { query: match[1]?.trim() || message, fullMessage: message };
+      break;
+    }
+  }
+
+  // Build page context if relevant
+  const pageKeywords = ['this page', 'the page', 'current page', 'summarize', 'what is this', 'explain'];
+  const needsPageContext = pageKeywords.some(kw => lowerMessage.includes(kw));
+  
   let enhancedMessage = message;
-  if (context && (context.title || context.url || context.content)) {
-    enhancedMessage = `[Current page: "${context.title || 'Unknown'}" at ${context.url || 'unknown URL'}]\n`;
+  if (needsPageContext && context && context.title) {
+    enhancedMessage = `[Current page: "${context.title}" at ${context.url}]\n`;
     if (context.content) {
-      const truncatedContent = context.content.substring(0, 3000);
-      enhancedMessage += `[Page content excerpt: ${truncatedContent}${context.content.length > 3000 ? '...' : ''}]\n\n`;
+      enhancedMessage += `[Page excerpt: ${context.content.substring(0, 2000)}]\n\n`;
     }
     enhancedMessage += `User: ${message}`;
   }
 
-  // Route to appropriate engine
+  // Get conversation history
+  const conversationContext = getConversationContext();
+
+  // Detect if this is a simple greeting (don't dump memory on greetings)
+  const greetingPatterns = /^(hi|hello|hey|yo|sup|good morning|good afternoon|good evening|howdy|hola|namaste|what's up|whats up)[\s!?.]*$/i;
+  const isSimpleGreeting = greetingPatterns.test(lowerMessage.trim());
+
+  // Build AGENTIC system prompt - AI decides and executes actions
+  let systemPrompt = `You are EVOS AI, an intelligent browser assistant that can TAKE ACTIONS on behalf of the user.
+
+🎯 YOUR MISSION: Help users by ACTUALLY DOING things, not just suggesting!
+
+⚡ AVAILABLE ACTIONS (use these to help the user):
+1. SEARCH: Search the web for anything
+2. NAVIGATE: Open any website
+3. OPEN_ZOMATO: Open Zomato for restaurant searches
+4. OPEN_GOOGLE_MAPS: Open Google Maps for locations
+
+📋 HOW TO TAKE ACTION:
+When you decide to take an action, include it in your response like this:
+\`\`\`json
+{"action": "search", "params": {"query": "your search query"}}
+\`\`\`
+
+Or for multiple actions:
+\`\`\`json
+{"actions": [
+  {"action": "search", "params": {"query": "romantic restaurants in Surat"}},
+  {"action": "open_zomato", "params": {"city": "surat"}}
+]}
+\`\`\`
+
+🧠 DECISION MAKING:
+- If user asks to find/search something → USE search action
+- If user asks about restaurants → USE open_zomato AND search
+- If user asks for directions/locations → USE open_google_maps
+- If user asks to open a website → USE navigate action
+- For questions you can answer directly → Just answer (no action needed)
+- For simple greetings (hi, hello) → Just greet back warmly, DON'T mention what you remember about them
+
+💡 GUIDELINES:
+1. BE PROACTIVE - Take action immediately when user needs something
+2. EXPLAIN what you're doing briefly
+3. Use emojis to be friendly 😊
+4. You have memory about the user - use it ONLY when relevant to their question
+5. For greetings, just say hi back naturally - don't list everything you know about them`;
+
+  // Add memory/conversation context ONLY if not a simple greeting
+  if (memoryContext && !isSimpleGreeting) {
+    systemPrompt += `\n\n📚 USER MEMORY (use only when relevant, don't mention on greetings):\n${memoryContext}`;
+  }
+  if (searchMemoryContext && !isSimpleGreeting) {
+    systemPrompt += `\n\n🔍 RELEVANT CONTEXT:\n${searchMemoryContext}`;
+  }
+  if (conversationContext) {
+    systemPrompt += `\n\n💬 CONVERSATION HISTORY:\n${conversationContext}`;
+  }
+
+  // Add detected action hint
+  if (detectedAction) {
+    systemPrompt += `\n\n⚡ DETECTED INTENT: User wants to ${detectedAction}. Query: "${actionParams.query}". You SHOULD take action!`;
+  }
+
+  // Add user message to history
+  addToConversationHistory('user', message);
+
+  let response = '';
+  let executedActions = [];
+
+  // Get AI response
   if (currentMode === 'online' && geminiModel) {
     try {
-      const response = await chatWithGemini(enhancedMessage);
-      return { response, type: 'success', mode: 'online' };
+      const fullPrompt = systemPrompt + '\n\nUser: ' + enhancedMessage + '\n\nAssistant (remember to include action JSON if taking action):';
+      response = await chatWithGemini(fullPrompt);
     } catch (error) {
       console.error('[Gemini] Chat error:', error);
-      return { response: `Gemini Error: ${error.message}`, type: 'error' };
+      return { response: `Error: ${error.message}`, type: 'error' };
     }
   } else {
-    // Offline mode (node-llama-cpp)
     if (!aiReady) {
       return { response: 'AI is not ready. Please wait for the model to load.', type: 'error' };
     }
-
     try {
-      const response = await aiAgent.chat(enhancedMessage);
-      return { response, type: 'success', mode: 'offline' };
+      response = await aiAgent.chat(enhancedMessage);
     } catch (error) {
-      console.error('[AI] Chat error:', error);
-      return { response: `AI Error: ${error.message}`, type: 'error' };
+      return { response: `Error: ${error.message}`, type: 'error' };
     }
   }
+
+  // Parse and execute any actions from the response
+  const actions = parseAIResponseForActions(response);
+  
+  // Also check for detected action if AI didn't include one
+  if (actions.length === 0 && detectedAction) {
+    // AI didn't include action, but we detected one - execute it
+    if (detectedAction === 'search') {
+      actions.push({ action: 'search', params: { query: actionParams.query } });
+    } else if (detectedAction === 'restaurant') {
+      const city = actionParams.query || 'surat';
+      actions.push({ action: 'search', params: { query: `best restaurants in ${city}` } });
+      actions.push({ action: 'open_zomato', params: { city } });
+    } else if (detectedAction === 'navigate') {
+      actions.push({ action: 'navigate', params: { url: actionParams.query } });
+    } else if (detectedAction === 'maps') {
+      actions.push({ action: 'open_google_maps', params: { query: actionParams.query } });
+    }
+  }
+
+  // Execute all detected actions
+  for (const actionData of actions) {
+    const result = await executeBrowserAction(
+      actionData.action,
+      actionData.params || actionData,
+      context?.webContentsId
+    );
+    executedActions.push({ ...actionData, result });
+    console.log('[AI] Executed action:', actionData.action, result);
+  }
+
+  // Clean up response (remove JSON blocks for display)
+  let cleanResponse = response.replace(/```json[\s\S]*?```/g, '').trim();
+  
+  // Add action confirmation if actions were executed
+  if (executedActions.length > 0) {
+    const actionSummary = executedActions.map(a => {
+      if (a.action === 'search') return `🔍 Searching for "${a.params?.query || a.params}"`;
+      if (a.action === 'open_zomato') return `🍽️ Opening Zomato`;
+      if (a.action === 'open_google_maps') return `🗺️ Opening Google Maps`;
+      if (a.action === 'navigate') return `🌐 Opening ${a.params?.url || a.params}`;
+      return `✅ ${a.action}`;
+    }).join('\n');
+    
+    if (!cleanResponse.includes('Opening') && !cleanResponse.includes('Searching')) {
+      cleanResponse = actionSummary + '\n\n' + cleanResponse;
+    }
+  }
+
+  // Add response to history
+  addToConversationHistory('assistant', cleanResponse);
+
+  // Remember interaction
+  try {
+    await knowledgeGraph.extractFromText(response, { source: 'ai_response' });
+  } catch (e) { /* ignore */ }
+
+  return { 
+    response: cleanResponse, 
+    type: 'success', 
+    mode: currentMode,
+    actions: executedActions
+  };
 });
 
 // Execute agent task (with tools)
@@ -1068,10 +1391,28 @@ ipcMain.handle('ai-clear-memory', async () => {
   }
 });
 
-// Clear chat history
+// Knowledge Graph Access
+ipcMain.handle('ai-get-knowledge-context', async () => {
+  if (knowledgeGraph) {
+    try {
+      const context = knowledgeGraph.getContextForAI();
+      const stats = knowledgeGraph.getStats ? knowledgeGraph.getStats() : null;
+      return { context: context || '', stats };
+    } catch (error) {
+      console.error('[KnowledgeGraph] IPC Error:', error);
+      return { context: '', stats: null };
+    }
+  }
+  return { context: '', stats: null };
+});
+
+// Clear AI Chat History
 ipcMain.handle('ai-clear-history', async () => {
-  aiAgent.clearHistory();
-  return { success: true };
+  if (aiAgent) {
+    aiAgent.clearHistory();
+    return true;
+  }
+  return false;
 });
 
 // Get model info
@@ -1112,7 +1453,7 @@ ipcMain.handle('ai-switch-mode', async (event, mode) => {
     }
     aiStore.set('settings.aiMode', 'online');
     mainWindow.webContents.send('ai-status', { status: 'ready', message: 'Online AI (Gemini) active' });
-    return { success: true, mode: 'online', model: 'gemini-2.0-flash-exp' };
+    return { success: true, mode: 'online', model: 'gemini-3-flash' };
 
   } else if (mode === 'offline') {
     // Check if offline model is ready

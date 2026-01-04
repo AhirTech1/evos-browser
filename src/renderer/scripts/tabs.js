@@ -214,11 +214,11 @@ class TabManager {
           </div>
           <span class="shortcut-title">Reddit</span>
         </div>
-        <div class="shortcut-item" data-url="https://twitter.com">
+        <div class="shortcut-item" data-url="https://x.com">
           <div class="shortcut-icon">
-            <img src="https://twitter.com/favicon.ico" alt="Twitter">
+            <img src="https://abs.twimg.com/favicons/twitter.3.ico" alt="X" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path d=%22M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z%22 fill=%22%23e5e5e5%22/></svg>'">
           </div>
-          <span class="shortcut-title">Twitter</span>
+          <span class="shortcut-title">X</span>
         </div>
         <div class="shortcut-item" data-url="https://www.amazon.com">
           <div class="shortcut-icon">
@@ -575,10 +575,12 @@ class TabManager {
     }
 
     const tabEl = document.getElementById(tabId);
-    if (tabEl && !tab?.isLoading) {
+    if (tabEl) {
       const favicon = tabEl.querySelector('.tab-favicon');
       if (favicon) {
+        // Always update the favicon, store it for loading state restoration
         favicon.src = faviconUrl;
+        favicon.dataset.realFavicon = faviconUrl;
         favicon.onerror = () => {
           favicon.src = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5c.5 0 1 .2 1.5.6.3.4.7 1 1 1.9H5.5c.3-.9.7-1.5 1-1.9.5-.4 1-.6 1.5-.6zM4.3 5.5h7.4c.2.7.3 1.6.3 2.5s-.1 1.8-.3 2.5H4.3c-.2-.7-.3-1.6-.3-2.5s.1-1.8.3-2.5zm-1.5 0c-.2.7-.3 1.6-.3 2.5s.1 1.8.3 2.5h-1C1.5 9.7 1.5 9 1.5 8s0-1.7.3-2.5h1zm10.4 0h1c.3.8.3 1.5.3 2.5s0 1.7-.3 2.5h-1c.2-.7.3-1.6.3-2.5s-.1-1.8-.3-2.5zM5.5 12h5c-.3.9-.7 1.5-1 1.9-.5.4-1 .6-1.5.6s-1-.2-1.5-.6c-.3-.4-.7-1-1-1.9z' fill='%239aa0a6'/></svg>";
         };

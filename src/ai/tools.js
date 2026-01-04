@@ -388,14 +388,15 @@ class BrowserTools {
   // Execute JavaScript in the browser context
   async executeInBrowser(script) {
     if (!this.browserContext) {
-      throw new Error('Browser context not set');
+      console.warn('[Tools] Browser context not set, returning error response');
+      return { success: false, message: 'Browser context not available. Please try again.' };
     }
 
     try {
       return await this.browserContext.executeJavaScript(script);
     } catch (error) {
       console.error('[Tools] Execute in browser error:', error);
-      throw error;
+      return { success: false, message: `Execution error: ${error.message}` };
     }
   }
 
@@ -407,10 +408,15 @@ class BrowserTools {
     }
 
     if (this.browserContext) {
-      await this.browserContext.loadURL(url);
+      try {
+        await this.browserContext.loadURL(url);
+        return { success: true, message: `Navigated to ${url}` };
+      } catch (error) {
+        return { success: false, message: `Navigation failed: ${error.message}` };
+      }
     }
 
-    return { success: true, message: `Navigated to ${url}` };
+    return { success: false, message: 'Browser context not available' };
   }
 
   async searchWeb({ query }) {
@@ -568,23 +574,38 @@ class BrowserTools {
 
   async goBack() {
     if (this.browserContext) {
-      await this.browserContext.goBack();
+      try {
+        await this.browserContext.goBack();
+        return { success: true, message: 'Navigated back' };
+      } catch (error) {
+        return { success: false, message: `Failed to go back: ${error.message}` };
+      }
     }
-    return { success: true, message: 'Navigated back' };
+    return { success: false, message: 'Browser context not available' };
   }
 
   async goForward() {
     if (this.browserContext) {
-      await this.browserContext.goForward();
+      try {
+        await this.browserContext.goForward();
+        return { success: true, message: 'Navigated forward' };
+      } catch (error) {
+        return { success: false, message: `Failed to go forward: ${error.message}` };
+      }
     }
-    return { success: true, message: 'Navigated forward' };
+    return { success: false, message: 'Browser context not available' };
   }
 
   async refreshPage() {
     if (this.browserContext) {
-      await this.browserContext.reload();
+      try {
+        await this.browserContext.reload();
+        return { success: true, message: 'Page refreshed' };
+      } catch (error) {
+        return { success: false, message: `Failed to refresh: ${error.message}` };
+      }
     }
-    return { success: true, message: 'Page refreshed' };
+    return { success: false, message: 'Browser context not available' };
   }
 
   async getLinks({ maxLinks = 50 }) {

@@ -6,6 +6,7 @@ const { AIAgent, aiAgent } = require('./agent');
 const { BrowserTools, browserTools } = require('./tools');
 const { AIMemory, aiMemory } = require('./memory');
 const { ModelDownloader, modelDownloader } = require('./model-downloader');
+const { KnowledgeGraph, knowledgeGraph } = require('./memory/knowledge-graph');
 const config = require('./config');
 
 module.exports = {
@@ -15,14 +16,16 @@ module.exports = {
   BrowserTools,
   AIMemory,
   ModelDownloader,
-  
+  KnowledgeGraph,
+
   // Singleton instances
   llmEngine,
   aiAgent,
   browserTools,
   aiMemory,
   modelDownloader,
-  
+  knowledgeGraph,
+
   // Configuration
   config
 };

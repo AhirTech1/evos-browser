@@ -4,8 +4,8 @@
   "description": "EVOS Browser - An AI-powered Chromium-based browser",
   "main": "src/main/main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --enable-logging",
+    "start": "cmd /c \"(set ELECTRON_RUN_AS_NODE=) && electron .\"",
+    "dev": "cmd /c \"(set ELECTRON_RUN_AS_NODE=) && electron . --enable-logging\"",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "dotenv": "^17.2.3",
     "electron-store": "^8.1.0",
     "node-llama-cpp": "^3.0.0",
     "uuid": "^9.0.1"

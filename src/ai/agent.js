@@ -111,6 +111,15 @@ Important rules:
 
   // Execute a single step
   async executeStep(userMessage, observations = []) {
+    // Check if LLM engine is available
+    if (!llmEngine || !llmEngine.isLoaded) {
+      return {
+        thought: 'AI engine not loaded',
+        action: 'answer_user',
+        params: { message: 'The AI engine is not currently loaded. Please wait for it to initialize.' }
+      };
+    }
+
     // Build messages for the LLM
     let prompt = '';
     
@@ -136,8 +145,13 @@ Important rules:
     
     prompt += 'Assistant: ';
 
-    // Get memory context
-    const memoryContext = await aiMemory.getContext(userMessage);
+    // Get memory context safely
+    let memoryContext = '';
+    try {
+      memoryContext = await aiMemory.getContext(userMessage);
+    } catch (error) {
+      console.warn('[Agent] Failed to get memory context:', error.message);
+    }
     
     // Full system prompt
     const fullSystemPrompt = this.getSystemPrompt() + 
@@ -273,6 +287,11 @@ Important rules:
 
   // Simple chat without tools
   async chat(message) {
+    // Check if LLM engine is available
+    if (!llmEngine || !llmEngine.isLoaded) {
+      return "I'm sorry, the AI engine is not currently loaded. Please wait for it to initialize or check if the model needs to be downloaded.";
+    }
+
     // Add to history
     this.conversationHistory.push({
       role: 'user',
@@ -287,23 +306,34 @@ When the user's message includes [Current page:...] information, use it to answe
 Be concise, helpful, and accurate. If you see page content, analyze it and respond based on what you can see.
 If asked about a page but no content is provided, explain that you need the page content to be extracted first.`;
     
-    const response = await llmEngine.chat(
-      this.conversationHistory.slice(-10),
-      systemPrompt
-    );
+    try {
+      const response = await llmEngine.chat(
+        this.conversationHistory.slice(-10),
+        systemPrompt
+      );
 
-    // Add response to history
-    this.conversationHistory.push({
-      role: 'assistant',
-      content: response,
-      timestamp: Date.now()
-    });
+      // Add response to history
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: response,
+        timestamp: Date.now()
+      });
 
-    return response;
+      return response;
+    } catch (error) {
+      console.error('[Agent] Chat error:', error);
+      return `I encountered an error: ${error.message}. Please try again.`;
+    }
   }
 
   // Stream a chat response
   async *chatStream(message) {
+    // Check if LLM engine is available
+    if (!llmEngine || !llmEngine.isLoaded) {
+      yield "I'm sorry, the AI engine is not currently loaded. Please wait for it to initialize.";
+      return;
+    }
+
     // Add to history
     this.conversationHistory.push({
       role: 'user',
@@ -322,23 +352,34 @@ If asked about a page but no content is provided, explain that you need the page
 
     let fullResponse = '';
     
-    for await (const chunk of llmEngine.generateStream(prompt)) {
-      fullResponse += chunk;
-      yield chunk;
-    }
+    try {
+      for await (const chunk of llmEngine.generateStream(prompt)) {
+        fullResponse += chunk;
+        yield chunk;
+      }
 
-    // Add response to history
-    this.conversationHistory.push({
-      role: 'assistant',
-      content: fullResponse,
-      timestamp: Date.now()
-    });
+      // Add response to history
+      this.conversationHistory.push({
+        role: 'assistant',
+        content: fullResponse,
+        timestamp: Date.now()
+      });
+    } catch (error) {
+      console.error('[Agent] Stream error:', error);
+      yield `\n\nError: ${error.message}`;
+    }
   }
 
   // Clear conversation history
   clearHistory() {
     this.conversationHistory = [];
-    llmEngine.resetSession();
+    try {
+      if (llmEngine && llmEngine.resetSession) {
+        llmEngine.resetSession();
+      }
+    } catch (error) {
+      console.warn('[Agent] Failed to reset LLM session:', error.message);
+    }
   }
 
   // Get conversation history

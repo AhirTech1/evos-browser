@@ -431,6 +431,11 @@
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-primary);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .ai-message.user .ai-message-content {
@@ -1449,4 +1454,205 @@
   width: 16px;
   height: 16px;
   color: var(--accent-color);
+}
+
+/* ==========================================
+   Memory Sub-tabs (About You / Saved Pages)
+   ========================================== */
+
+.ai-memory-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ai-memory-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.ai-memory-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.ai-memory-tab.active {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(59, 130, 246, 0.2));
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.2);
+}
+
+.ai-memory-subtab {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.ai-memory-subtab.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Knowledge Section (About You) */
+.ai-knowledge-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-knowledge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-knowledge-header span {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.ai-clear-knowledge-btn {
+  padding: 6px 12px;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-clear-knowledge-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.ai-knowledge-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ai-knowledge-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary);
+}
+
+.ai-knowledge-empty .ai-knowledge-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.ai-knowledge-empty p {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.ai-knowledge-empty span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ai-knowledge-tips {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(168, 85, 247, 0.1);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.ai-knowledge-tips strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.ai-knowledge-tips ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.ai-knowledge-tips li {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.ai-knowledge-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-knowledge-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-violet);
+  margin-top: 16px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.ai-knowledge-section-title:first-child {
+  margin-top: 0;
+}
+
+.ai-knowledge-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ai-knowledge-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ai-knowledge-bullet {
+  color: var(--accent-cyan);
+  font-weight: bold;
+}
+
+.ai-knowledge-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.ai-knowledge-stats {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ai-knowledge-stats span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ai-knowledge-loading {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-secondary);
 }
