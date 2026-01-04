@@ -972,9 +972,9 @@ function addToConversationHistory(role, content) {
 // Get conversation context string
 function getConversationContext() {
   if (conversationHistory.length === 0) return '';
-  
+
   const recentHistory = conversationHistory.slice(-10);
-  return recentHistory.map(msg => 
+  return recentHistory.map(msg =>
     `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
   ).join('\n');
 }
@@ -982,14 +982,14 @@ function getConversationContext() {
 // Execute browser action
 async function executeBrowserAction(action, params, webContentsId) {
   console.log(`[AI Action] Executing: ${action}`, params);
-  
+
   try {
     // Get webContents for browser interaction
     let webContents = null;
     if (webContentsId) {
       webContents = require('electron').webContents.fromId(webContentsId);
     }
-    
+
     switch (action) {
       case 'search':
       case 'search_web':
@@ -998,7 +998,7 @@ async function executeBrowserAction(action, params, webContentsId) {
         // Tell renderer to open new tab with search
         mainWindow.webContents.send('ai-open-url', { url: searchUrl, newTab: true });
         return { success: true, action: 'search', query: searchQuery, url: searchUrl };
-        
+
       case 'navigate':
       case 'open':
       case 'go_to':
@@ -1008,18 +1008,18 @@ async function executeBrowserAction(action, params, webContentsId) {
         }
         mainWindow.webContents.send('ai-open-url', { url, newTab: params.newTab !== false });
         return { success: true, action: 'navigate', url };
-        
+
       case 'open_zomato':
         const zomatoUrl = `https://www.zomato.com/${params.city || 'surat'}/restaurants`;
         mainWindow.webContents.send('ai-open-url', { url: zomatoUrl, newTab: true });
         return { success: true, action: 'open_zomato', url: zomatoUrl };
-        
+
       case 'open_google_maps':
         const mapsQuery = params.query || params;
         const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(mapsQuery)}`;
         mainWindow.webContents.send('ai-open-url', { url: mapsUrl, newTab: true });
         return { success: true, action: 'open_google_maps', url: mapsUrl };
-        
+
       case 'click':
         if (webContents) {
           await webContents.executeJavaScript(`
@@ -1031,7 +1031,7 @@ async function executeBrowserAction(action, params, webContentsId) {
           `);
         }
         return { success: true, action: 'click' };
-        
+
       case 'type':
         if (webContents) {
           await webContents.executeJavaScript(`
@@ -1047,13 +1047,13 @@ async function executeBrowserAction(action, params, webContentsId) {
           `);
         }
         return { success: true, action: 'type' };
-        
+
       case 'scroll':
         if (webContents) {
           await webContents.executeJavaScript(`window.scrollBy(0, ${params.amount || 500})`);
         }
         return { success: true, action: 'scroll' };
-        
+
       default:
         return { success: false, error: `Unknown action: ${action}` };
     }
@@ -1066,7 +1066,7 @@ async function executeBrowserAction(action, params, webContentsId) {
 // Parse AI response for actions
 function parseAIResponseForActions(response) {
   const actions = [];
-  
+
   // Look for JSON action blocks
   const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
   if (jsonMatch) {
@@ -1076,7 +1076,7 @@ function parseAIResponseForActions(response) {
       if (Array.isArray(parsed.actions)) actions.push(...parsed.actions);
     } catch (e) { /* ignore parse errors */ }
   }
-  
+
   // Look for ACTION: format
   const actionMatches = response.matchAll(/ACTION:\s*(\w+)\s*(?:\(([^)]*)\))?/gi);
   for (const match of actionMatches) {
@@ -1085,7 +1085,7 @@ function parseAIResponseForActions(response) {
       params: match[2] || ''
     });
   }
-  
+
   return actions;
 }
 
@@ -1115,8 +1115,14 @@ ipcMain.handle('ai-chat', async (event, { message, context }) => {
   } catch (e) { /* ignore */ }
 
   const lowerMessage = message.toLowerCase();
-  
-  // Detect action intent
+
+  // Detect if this is a summarization request - skip action detection for summaries
+  const isSummarizeRequest = lowerMessage.includes('summarize') ||
+    lowerMessage.includes('summary') ||
+    lowerMessage.includes('page content:') ||
+    lowerMessage.includes('please provide a clear summary');
+
+  // Detect action intent (but NOT for summarize requests)
   const actionPatterns = {
     search: /(?:search|find|look for|look up|google|search for)\s+(.+?)(?:\s+(?:on|in|for me))?$/i,
     restaurant: /(?:restaurant|places? to eat|dinner|lunch|breakfast|food|cafe|dining).*?(?:in|at|near|around)?\s*(\w+)?/i,
@@ -1130,20 +1136,22 @@ ipcMain.handle('ai-chat', async (event, { message, context }) => {
   let detectedAction = null;
   let actionParams = {};
 
-  // Check for action patterns
-  for (const [actionType, pattern] of Object.entries(actionPatterns)) {
-    const match = lowerMessage.match(pattern);
-    if (match) {
-      detectedAction = actionType;
-      actionParams = { query: match[1]?.trim() || message, fullMessage: message };
-      break;
+  // Check for action patterns ONLY if this is NOT a summarize request
+  if (!isSummarizeRequest) {
+    for (const [actionType, pattern] of Object.entries(actionPatterns)) {
+      const match = lowerMessage.match(pattern);
+      if (match) {
+        detectedAction = actionType;
+        actionParams = { query: match[1]?.trim() || message, fullMessage: message };
+        break;
+      }
     }
   }
 
   // Build page context if relevant
   const pageKeywords = ['this page', 'the page', 'current page', 'summarize', 'what is this', 'explain'];
   const needsPageContext = pageKeywords.some(kw => lowerMessage.includes(kw));
-  
+
   let enhancedMessage = message;
   if (needsPageContext && context && context.title) {
     enhancedMessage = `[Current page: "${context.title}" at ${context.url}]\n`;
@@ -1244,7 +1252,7 @@ Or for multiple actions:
 
   // Parse and execute any actions from the response
   const actions = parseAIResponseForActions(response);
-  
+
   // Also check for detected action if AI didn't include one
   if (actions.length === 0 && detectedAction) {
     // AI didn't include action, but we detected one - execute it
@@ -1274,7 +1282,7 @@ Or for multiple actions:
 
   // Clean up response (remove JSON blocks for display)
   let cleanResponse = response.replace(/```json[\s\S]*?```/g, '').trim();
-  
+
   // Add action confirmation if actions were executed
   if (executedActions.length > 0) {
     const actionSummary = executedActions.map(a => {
@@ -1284,7 +1292,7 @@ Or for multiple actions:
       if (a.action === 'navigate') return `🌐 Opening ${a.params?.url || a.params}`;
       return `✅ ${a.action}`;
     }).join('\n');
-    
+
     if (!cleanResponse.includes('Opening') && !cleanResponse.includes('Searching')) {
       cleanResponse = actionSummary + '\n\n' + cleanResponse;
     }
@@ -1298,9 +1306,9 @@ Or for multiple actions:
     await knowledgeGraph.extractFromText(response, { source: 'ai_response' });
   } catch (e) { /* ignore */ }
 
-  return { 
-    response: cleanResponse, 
-    type: 'success', 
+  return {
+    response: cleanResponse,
+    type: 'success',
     mode: currentMode,
     actions: executedActions
   };
