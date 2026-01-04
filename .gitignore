@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# testing scripts
+scripts/
+
 # Build output
 dist/
 out/

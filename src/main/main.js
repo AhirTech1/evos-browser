@@ -332,6 +332,7 @@ function createSettingsWindow() {
     parent: mainWindow,
     modal: true,
     frame: false,
+    icon: path.join(__dirname, '../../assets/icons/icon.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
