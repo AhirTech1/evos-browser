@@ -132,27 +132,66 @@ evos-browser/
 ├── assets/
 │   └── icons/              # Application icons
 ├── src/
-│   ├── main/
-│   │   ├── main.js         # Main process (Electron)
-│   │   └── preload.js      # Preload script for IPC
-│   └── renderer/
-│       ├── index.html      # Main browser window
-│       ├── settings.html   # Settings page
-│       ├── styles/         # CSS stylesheets
-│       │   ├── main.css
-│       │   ├── titlebar.css
-│       │   ├── tabs.css
-│       │   ├── navbar.css
-│       │   └── panels.css
-│       └── scripts/        # JavaScript modules
-│           ├── app.js      # Main application entry
-│           ├── tabs.js     # Tab management
-│           ├── navigation.js
-│           ├── panels.js   # History, bookmarks, downloads
-│           └── menu.js     # Dropdown menu
+│   ├── main/               # Main Electron process
+│   │   ├── main.js         # Main process entry point
+│   │   ├── preload.js      # Preload script for IPC
+│   │   └── context-bus.js  # Context management system
+│   ├── renderer/           # Browser UI and scripts
+│   │   ├── index.html      # Main browser window
+│   │   ├── settings.html   # Settings page
+│   │   ├── scripts/        # JavaScript modules
+│   │   │   ├── app.js      # Main application entry
+│   │   │   ├── tabs.js     # Tab management
+│   │   │   ├── navigation.js
+│   │   │   ├── panels.js   # History, bookmarks, downloads
+│   │   │   ├── ai-panel.js # AI assistant interface
+│   │   │   ├── agent-manager.js
+│   │   │   ├── macro-agent.js
+│   │   │   ├── profile-manager.js
+│   │   │   └── ...         # Additional UI scripts
+│   │   └── styles/         # CSS stylesheets
+│   │       ├── main.css
+│   │       ├── titlebar.css
+│   │       ├── tabs.css
+│   │       ├── navbar.css
+│   │       ├── panels.css
+│   │       ├── ai-panel.css
+│   │       └── ...         # Additional styles
+│   └── ai/                 # AI and automation system
+│       ├── agent.js        # Main AI agent (JavaScript)
+│       ├── agent.py        # Main AI agent (Python)
+│       ├── server.py       # Python Flask backend for AI
+│       ├── llm-engine.js   # LLM integration (JavaScript)
+│       ├── llm_engine.py   # LLM integration (Python)
+│       ├── tools.js/py     # AI tools and actions
+│       ├── memory.js/py    # Memory management
+│       ├── config.js/py    # AI configuration
+│       ├── macros/         # Macro recording and playback
+│       │   ├── index.js
+│       │   └── healing-engine.js
+│       ├── memory/         # Memory and context systems
+│       │   ├── index.js
+│       │   ├── knowledge-graph.js
+│       │   └── temporal-tracker.js
+│       ├── perception/     # Visual perception systems
+│       │   ├── index.js
+│       │   ├── coordinate-mapper.js
+│       │   └── frame-compositor.js
+│       └── security/       # Security and safety systems
+│           ├── index.js
+│           ├── injection-detector.js
+│           └── intent-verifier.js
+├── tests/                  # Test files
+├── scripts/                # Build and utility scripts
 ├── package.json
 └── README.md
 ```
+
+> **Note:** For detailed information about each directory, see the README.md files in:
+> - [src/](src/README.md) - Source code overview
+> - [src/main/](src/main/README.md) - Electron main process
+> - [src/renderer/](src/renderer/README.md) - Browser UI and renderer
+> - [src/ai/](src/ai/README.md) - AI and automation systems
 
 ## 🔮 Future Plans: AI Agent Integration
 
