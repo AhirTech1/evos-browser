@@ -5,8 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com https://db.onlinewebfonts.com;">
   <title>EVOS Browser</title>
+
+  <!-- Custom Font - Architype Van Der Leck (Local for offline) -->
+  <style>
+    @font-face {
+      font-family: 'Architype Van Der Leck W90';
+      src: url('../../assets/fonts/architype-van.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+  </style>
+
   <link rel="stylesheet" href="styles/main.css">
   <link rel="stylesheet" href="styles/titlebar.css">
   <link rel="stylesheet" href="styles/tabs.css">
@@ -15,12 +27,15 @@
   <link rel="stylesheet" href="styles/panels.css">
   <link rel="stylesheet" href="styles/ai-panel.css">
   <link rel="stylesheet" href="styles/agent.css">
+  <link rel="stylesheet" href="styles/quick-action-bar.css">
 </head>
 
 <body class="dark-theme">
   <!-- Title Bar -->
   <div id="titlebar">
-    <div class="titlebar-branding">EVOS</div>
+    <div class="titlebar-branding">
+      <img src="../../assets/icons/Logo.png" alt="EVOS" class="titlebar-logo">
+    </div>
     <div id="tabs-container">
       <button id="btn-new-tab" class="new-tab-btn" title="New Tab (Ctrl+T)">
         <svg width="14" height="14" viewBox="0 0 14 14">
@@ -336,6 +351,11 @@
   <script src="scripts/research-agent.js"></script>
   <script src="scripts/macro-agent.js"></script>
   <script src="scripts/search-agent.js"></script>
+  <script src="scripts/quick-action-bar.js"></script>
+  <script src="scripts/task-queue.js"></script>
+  <script src="scripts/proactive-agent.js"></script>
+  <script src="scripts/smart-commands.js"></script>
+  <script src="scripts/task-dashboard.js"></script>
   <script src="scripts/app.js"></script>
 </body>
 

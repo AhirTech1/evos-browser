@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { app, BrowserWindow, ipcMain, session, Menu, dialog, nativeTheme } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
@@ -73,7 +74,7 @@ async function initializeGemini() {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    geminiModel = genAI.getGenerativeModel({ model: 'gemini-3-flash' });
     console.log('[Gemini] Initialized successfully');
     return true;
   } catch (error) {

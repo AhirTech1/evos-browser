@@ -1,0 +1,365 @@
+/**
+ * EVOS Quick Action Bar
+ * Spotlight-style command bar with glassmorphism design
+ */
+
+/* Overlay backdrop */
+.quick-action-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.quick-action-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Main container */
+.quick-action-bar {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px) scale(0.95);
+    width: 680px;
+    max-width: 90vw;
+    background: linear-gradient(135deg, rgba(30, 30, 45, 0.95), rgba(20, 20, 35, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow:
+        0 25px 80px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    z-index: 10001;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.quick-action-overlay.active .quick-action-bar {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+/* Input section */
+.quick-action-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quick-action-icon {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.quick-action-icon svg {
+    width: 16px;
+    height: 16px;
+    color: white;
+}
+
+.quick-action-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 18px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    letter-spacing: -0.01em;
+}
+
+.quick-action-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.quick-action-shortcut {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.quick-action-shortcut kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* Results section */
+.quick-action-results {
+    max-height: 380px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.quick-action-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.quick-action-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.quick-action-results::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+/* Section headers */
+.quick-action-section {
+    padding: 10px 22px 6px;
+}
+
+.quick-action-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.35);
+    margin: 0;
+}
+
+/* Action items */
+.quick-action-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 22px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.quick-action-item:hover,
+.quick-action-item.selected {
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.quick-action-item.selected {
+    background: rgba(99, 102, 241, 0.2);
+}
+
+.quick-action-item-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    flex-shrink: 0;
+    font-size: 18px;
+}
+
+.quick-action-item-icon.ai {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+.quick-action-item-icon.navigate {
+    background: linear-gradient(135deg, #10b981, #14b8a6);
+}
+
+.quick-action-item-icon.search {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+
+.quick-action-item-icon.task {
+    background: linear-gradient(135deg, #ec4899, #f43f5e);
+}
+
+.quick-action-item-icon.macro {
+    background: linear-gradient(135deg, #06b6d4, #0ea5e9);
+}
+
+.quick-action-item-icon.research {
+    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+}
+
+.quick-action-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.quick-action-item-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.quick-action-item-description {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.quick-action-item-action {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Empty state */
+.quick-action-empty {
+    padding: 40px 22px;
+    text-align: center;
+}
+
+.quick-action-empty-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+}
+
+.quick-action-empty-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0;
+}
+
+/* Footer */
+.quick-action-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 22px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.quick-action-footer-hint {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.quick-action-footer-hint span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.quick-action-footer-hint kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.quick-action-branding {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.quick-action-branding svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Loading state */
+.quick-action-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 30px 22px;
+}
+
+.quick-action-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(99, 102, 241, 0.2);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: quick-action-spin 0.8s linear infinite;
+}
+
+@keyframes quick-action-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.quick-action-loading-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Animations */
+@keyframes quick-action-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.quick-action-item.executing .quick-action-item-icon {
+    animation: quick-action-pulse 1.5s ease-in-out infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .quick-action-bar {
+        width: 95vw;
+        top: 10%;
+    }
+
+    .quick-action-input {
+        font-size: 16px;
+    }
+
+    .quick-action-shortcut {
+        display: none;
+    }
+}

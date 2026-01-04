@@ -1,44 +1,42 @@
-/* Title Bar Styles */
+/* Title Bar Styles - Galaxy Theme */
 
 #titlebar {
   height: var(--titlebar-height);
-  background: var(--bg-secondary);
+  background: rgba(10, 10, 15, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: flex-end;
-  /* Align tabs to bottom */
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   -webkit-app-region: drag;
   position: relative;
-  /* For absolute positioning of branding */
 }
 
-/* Branding (EVOS Text) */
-/* Branding (EVOS Text) */
+/* Branding (EVOS Logo) */
 .titlebar-branding {
-  /* Left-aligned branding (User layout pivot) */
   position: relative;
-  /* In-flow */
   display: flex;
   align-items: center;
   justify-content: center;
-  /* pointer-events: none; -> Keep interactive if we want, or none is fine */
   pointer-events: none;
   z-index: 2;
-  /* Same level as others */
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  /* Brighter color to punch through glass? No, now it's standalone, so maybe subtle again? 
-     User said "70-80% visible". Let's keep it visible. */
-  color: rgba(255, 255, 255, 0.7);
-  user-select: none;
-  padding: 0 16px;
-  /* Spacing around text */
+  padding: 0 12px;
   height: 100%;
 }
 
-/* Drag region is no longer needed as tabs-container handles dragging */
+.titlebar-logo {
+  height: 24px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+  transition: filter var(--transition-normal);
+}
+
+.titlebar-logo:hover {
+  filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.6));
+}
+
+/* Drag region */
 .titlebar-drag-region {
   display: none;
 }
@@ -51,51 +49,49 @@
   z-index: 2;
   position: relative;
   align-items: flex-start;
-  /* Controls at top */
   min-width: 140px;
-  /* Ensure controls have space */
   justify-content: flex-end;
-  /* Push buttons to right */
 }
 
 .titlebar-btn {
   width: 46px;
   height: 100%;
-  /* Or fixed height if bar is taller */
   max-height: 32px;
-  /* Standard windows control height */
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
   transition: all var(--transition-fast);
   -webkit-app-region: no-drag;
+  border-radius: 0;
 }
 
 .titlebar-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--accent-cyan);
 }
 
 .titlebar-btn.btn-close:hover {
-  background: var(--error-color);
+  background: rgba(239, 68, 68, 0.9);
   color: white;
 }
 
-/* Profile Button (in navbar toolbar) */
+/* Profile Button */
 .profile-btn {
   border-radius: 50% !important;
   padding: 0 !important;
   width: 28px !important;
   height: 28px !important;
   min-width: 28px !important;
-  background: rgba(139, 92, 246, 0.2) !important;
-  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  background: rgba(168, 85, 247, 0.2) !important;
+  border: 1px solid rgba(168, 85, 247, 0.4) !important;
+  transition: all var(--transition-normal) !important;
 }
 
 .profile-btn:hover {
-  background: rgba(139, 92, 246, 0.4) !important;
-  border-color: rgba(139, 92, 246, 0.5) !important;
+  background: rgba(168, 85, 247, 0.4) !important;
+  border-color: rgba(168, 85, 247, 0.6) !important;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.4) !important;
   transform: scale(1.05);
 }
 
