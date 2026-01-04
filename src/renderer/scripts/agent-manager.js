@@ -354,8 +354,11 @@ class AgentManager {
     }
 
     async runResearchTask(data) {
-        // Placeholder - will be implemented in research-agent.js
-        if (window.researchAgent) {
+        // Open new Deep Research panel
+        if (window.researchModePanel) {
+            window.researchModePanel.open();
+        } else if (window.researchAgent) {
+            // Fallback to old behavior
             await window.researchAgent.analyze(data);
         }
     }

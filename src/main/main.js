@@ -1115,11 +1115,20 @@ ipcMain.handle('ai-chat', async (event, { message, context }) => {
 
   const lowerMessage = message.toLowerCase();
 
-  // Detect if this is a summarization request - skip action detection for summaries
-  const isSummarizeRequest = lowerMessage.includes('summarize') ||
+  // Detect if this is a summarization or research request - skip action detection
+  const isContentAnalysisRequest = lowerMessage.includes('summarize') ||
     lowerMessage.includes('summary') ||
     lowerMessage.includes('page content:') ||
-    lowerMessage.includes('please provide a clear summary');
+    lowerMessage.includes('please provide a clear summary') ||
+    lowerMessage.includes('compare') ||
+    lowerMessage.includes('comparison') ||
+    lowerMessage.includes('research') ||
+    lowerMessage.includes('analyze') ||
+    lowerMessage.includes('key feature') ||
+    lowerMessage.includes('verdict') ||
+    lowerMessage.includes('recommendation') ||
+    lowerMessage.includes('respond in this exact format') ||
+    lowerMessage.includes('| item |');
 
   // Detect action intent (but NOT for summarize requests)
   const actionPatterns = {
@@ -1135,8 +1144,8 @@ ipcMain.handle('ai-chat', async (event, { message, context }) => {
   let detectedAction = null;
   let actionParams = {};
 
-  // Check for action patterns ONLY if this is NOT a summarize request
-  if (!isSummarizeRequest) {
+  // Check for action patterns ONLY if this is NOT a content analysis request
+  if (!isContentAnalysisRequest) {
     for (const [actionType, pattern] of Object.entries(actionPatterns)) {
       const match = lowerMessage.match(pattern);
       if (match) {

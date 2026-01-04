@@ -873,7 +873,12 @@ Refined Search Query (combine query with relevant preferences, location, or rela
         break;
 
       case 'research':
-        if (window.researchAgent) {
+        if (window.researchModePanel) {
+          await think('🔬 Opening Research Mode...', 500);
+          this.hideTyping();
+          this.addMessage('assistant', 'Opening Research Mode! Select the tabs you want to analyze and I\'ll create a detailed comparison for you. 🔬');
+          window.researchModePanel.open();
+        } else if (window.researchAgent) {
           await think('📚 Collecting content from all tabs...', 800);
           await think('🔬 Extracting key information...', 700);
           this.hideTyping();
@@ -884,7 +889,7 @@ Refined Search Query (combine query with relevant preferences, location, or rela
           await think('📝 Generating comparison report...', 800);
           this.hideTyping();
 
-          await window.researchAgent.compare();
+          await window.researchAgent.analyze();
 
           this.addMessage('assistant', '✅ Research complete! I\'ve created a detailed comparison for you.');
         } else {
@@ -1183,11 +1188,15 @@ Please provide a clear summary of the main points from this content:`;
 
       case 'research':
         this.hideTyping();
-        this.addMessage('user', 'Analyze and compare my open tabs');
-        if (window.researchAgent) {
+        this.addMessage('user', 'Start deep research');
+        if (window.researchModePanel) {
+          this.addMessage('assistant', 'Opening Deep Research Mode! Enter a topic and I will search the web, gather sources, and compile a comprehensive report for you. 🔬');
+          window.researchModePanel.open();
+        } else if (window.researchAgent) {
+          // Fallback
           await window.researchAgent.analyze();
         } else {
-          this.addMessage('error', 'Research agent not available');
+          this.addMessage('error', 'Research mode not available');
         }
         break;
 

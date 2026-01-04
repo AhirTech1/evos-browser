@@ -470,7 +470,9 @@ class QuickActionBar {
                 break;
 
             case 'compare':
-                if (window.researchAgent) {
+                if (window.researchModePanel) {
+                    window.researchModePanel.open();
+                } else if (window.researchAgent) {
                     window.researchAgent.analyze();
                 }
                 break;
@@ -498,7 +500,9 @@ class QuickActionBar {
                 break;
 
             case 'research':
-                if (window.researchAgent) {
+                if (window.researchModePanel) {
+                    window.researchModePanel.open();
+                } else if (window.researchAgent) {
                     window.researchAgent.analyze();
                 }
                 break;
