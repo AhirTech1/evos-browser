@@ -95,15 +95,39 @@ The AI is accessed through the panel (Ctrl+Shift+A or click AI button):
 
 ```
 src/ai/
-├── index.js           # Main exports
-├── config.js          # Configuration
-├── llm-engine.js      # LLM interface
-├── agent.js           # ReAct agent
-├── tools.js           # Browser tools
-├── memory.js          # Memory system
-├── model-downloader.js # Model management
-└── README.md          # This file
+├── index.js                      # Main exports (JavaScript)
+├── config.js / config.py         # Configuration
+├── llm-engine.js / llm_engine.py # LLM interface
+├── gemini_engine.py              # Google Gemini integration
+├── agent.js / agent.py           # ReAct agent
+├── tools.js / tools.py           # Browser automation tools
+├── memory.js / memory.py         # Memory management
+├── model-downloader.js           # Model download manager
+├── server.py                     # Flask backend for Python AI
+├── requirements.txt              # Python dependencies
+├── macros/                       # → See macros/README.md
+│   ├── index.js
+│   └── healing-engine.js
+├── memory/                       # → See memory/README.md
+│   ├── index.js
+│   ├── knowledge-graph.js
+│   └── temporal-tracker.js
+├── perception/                   # → See perception/README.md
+│   ├── index.js
+│   ├── coordinate-mapper.js
+│   └── frame-compositor.js
+└── security/                     # → See security/README.md
+    ├── index.js
+    ├── injection-detector.js
+    └── intent-verifier.js
 ```
+
+## Subdirectories
+
+- **[macros/](macros/README.md)** - Macro recording and playback with self-healing
+- **[memory/](memory/README.md)** - Knowledge graph and temporal memory systems
+- **[perception/](perception/README.md)** - Visual perception and coordinate mapping
+- **[security/](security/README.md)** - Security scanning and intent verification
 
 ## Privacy
 
